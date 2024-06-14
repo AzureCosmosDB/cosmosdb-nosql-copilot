@@ -35,7 +35,7 @@ var abbreviations = loadJsonContent('abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = {
   'azd-env-name': environmentName
-  repo: 'https://github.com/azure-samples/cosmosdb-chatgpt'
+  repo: 'https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot'
 }
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
