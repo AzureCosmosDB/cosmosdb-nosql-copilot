@@ -6,10 +6,10 @@ param tags object = {}
 
 @allowed(['GlobalDocumentDB', 'MongoDB', 'Parse'])
 @description('Sets the kind of account.')
-param kind string
+param kind string = 'GlobalDocumentDB'
 
 @description('Enables serverless for this account. Defaults to false.')
-param enableServerless bool = false
+param enableServerless bool = true
 
 @description('Enables NoSQL vector search for this account. Defaults to false.')
 param enableNoSQLVectorSearch bool = false

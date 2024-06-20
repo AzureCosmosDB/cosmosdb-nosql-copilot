@@ -10,7 +10,7 @@ var database = {
 
 var containers = [
   {
-    name: 'chatcontainer' // Container for chat sessions and messages
+    name: 'chat' // Container for chat sessions and messages
     partitionKeyPaths: [
       '/sessionId' // Partition on the session identifier
     ]
@@ -33,7 +33,7 @@ var containers = [
     }
   }
   {
-    name: 'cachecontainer' // Container for chat sessions and messages
+    name: 'cache' // Container for chat sessions and messages
     partitionKeyPaths: [
       '/id' // Partition on the session identifier
     ]
@@ -45,11 +45,39 @@ var containers = [
           path: '/*'
         }
       ]
-      excludedPaths: [
+      //excludedPaths: [{}]
+      vectorIndexes: [
         {
-          path: '/vectors/?'
+          path: '/vectors'
+          type: 'quantizedFlat'
         }
       ]
+    }
+    vectorEmbeddingPolicy: {
+      vectorEmbeddings: [
+        {
+          path: '/vectors'
+          dataType: 'float32'
+          dimensions: 1536
+          distanceFunction: 'cosine'
+        }
+      ]
+    }
+  }
+  {
+    name: 'products' // Container for products
+    partitionKeyPaths: [
+      '/categoryId' // Partition for product data
+    ]
+    indexingPolicy: {
+      automatic: true
+      indexingMode: 'consistent'
+      includedPaths: [
+        {
+          path: '/*'
+        }
+      ]
+      //excludedPaths: [{}]
       vectorIndexes: [
         {
           path: '/vectors'

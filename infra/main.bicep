@@ -38,6 +38,13 @@ var tags = {
   repo: 'https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot'
 }
 
+var chatSettings = {
+  maxConversationTokens: '100'
+  cacheSimilarityScore: '0.99'
+  productSimilarityScore: '0.95'
+  productMaxResults: '10'
+}
+
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: environmentName
   location: location
@@ -76,11 +83,18 @@ module web 'app/web.bicep' = {
       database: database.outputs.database.name
       chatContainer: database.outputs.containers[0].name
       cacheContainer: database.outputs.containers[1].name
+      productContainer: database.outputs.containers[2].name
     }
     openAiSettings: {
       maxConversationTokens: ai.outputs.maxConversationTokens
       completionDeploymentName: ai.outputs.deployments[0].name
       embeddingDeploymentName: ai.outputs.deployments[1].name
+    }
+    chatSettings: {
+      maxConversationTokens: chatSettings.maxConversationTokens
+      cacheSimilarityScore: chatSettings.cacheSimilarityScore
+      productSimilarityScore: chatSettings.productSimilarityScore
+      productMaxResults: chatSettings.productMaxResults
     }
     userAssignedManagedIdentity: {
       resourceId: identity.outputs.resourceId
@@ -117,8 +131,15 @@ output AZURE_COSMOS_DB_ENDPOINT string = database.outputs.endpoint
 output AZURE_COSMOS_DB_DATABASE_NAME string = database.outputs.database.name
 output AZURE_COSMOS_DB_CHAT_CONTAINER_NAME string = database.outputs.containers[0].name
 output AZURE_COSMOS_DB_CACHE_CONTAINER_NAME string = database.outputs.containers[1].name
+output AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME string = database.outputs.containers[2].name
 
 // AI outputs
 output AZURE_OPENAI_ACCOUNT_ENDPOINT string = ai.outputs.endpoint
 output AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME string = ai.outputs.deployments[0].name
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME string = ai.outputs.deployments[1].name
+
+// Chat outputs
+output AZURE_CHAT_MAX_CONVERSATION_TOKENS string = chatSettings.maxConversationTokens
+output AZURE_CHAT_CACHE_SIMILARITY_SCORE string = chatSettings.cacheSimilarityScore
+output AZURE_CHAT_PRODUCT_SIMILARITY_SCORE string = chatSettings.productSimilarityScore
+output AZURE_CHAT_PRODUCT_MAX_RESULTS string = chatSettings.productMaxResults

@@ -58,7 +58,8 @@ static class ProgramExtensions
                     endpoint: cosmosDbOptions.Value?.Endpoint ?? String.Empty,
                     databaseName: cosmosDbOptions.Value?.Database ?? String.Empty,
                     chatContainerName: cosmosDbOptions.Value?.ChatContainer ?? String.Empty,
-                    cacheContainerName: cosmosDbOptions.Value?.CacheContainer ?? String.Empty
+                    cacheContainerName: cosmosDbOptions.Value?.CacheContainer ?? String.Empty,
+                    productContainerName: cosmosDbOptions.Value?.ProductContainer ?? String.Empty
                 );
             }
         });
@@ -111,7 +112,9 @@ static class ProgramExtensions
                     cosmosDbService: cosmosDbService,
                     semanticKernelService: semanticKernelService,
                     maxConversationTokens: chatOptions.Value?.MaxConversationTokens ?? String.Empty,
-                    cacheSimilarityScore: chatOptions.Value?.CacheSimilarityScore ?? String.Empty
+                    cacheSimilarityScore: chatOptions.Value?.CacheSimilarityScore ?? String.Empty,
+                    productSimilarityScore: chatOptions.Value?.ProductSimilarityScore ?? String.Empty,
+                    productMaxResults: chatOptions.Value?.ProductMaxResults ?? String.Empty
                 );
             }
         });

@@ -10,7 +10,7 @@ param parentAccountName string
 param parentDatabaseName string
 
 @description('Enables throughput setting at this resource level. Defaults to true.')
-param setThroughput bool = true
+param setThroughput bool = false
 
 @description('Enables autoscale. If setThroughput is enabled, defaults to false.')
 param autoscale bool = false

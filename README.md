@@ -34,7 +34,6 @@ This application demonstrates the following concepts and how to implement them:
 
 - Azure Subscription
 - [Azure Developer CLI](https://aka.ms/azd-install)
-- [PowerShell 7.0 or above](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.4)
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
 - Azure Cosmos DB for NoSQL Vector Search Preview enrollment
