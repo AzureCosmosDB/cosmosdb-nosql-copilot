@@ -113,7 +113,6 @@ static class ProgramExtensions
                     semanticKernelService: semanticKernelService,
                     maxConversationTokens: chatOptions.Value?.MaxConversationTokens ?? String.Empty,
                     cacheSimilarityScore: chatOptions.Value?.CacheSimilarityScore ?? String.Empty,
-                    productSimilarityScore: chatOptions.Value?.ProductSimilarityScore ?? String.Empty,
                     productMaxResults: chatOptions.Value?.ProductMaxResults ?? String.Empty
                 );
             }

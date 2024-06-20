@@ -26,7 +26,6 @@ hooks:
             'CosmosDb:ProductContainer' = $env:AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME
             'Chat:MaxConversationTokens' = $env:AZURE_CHAT_MAX_CONVERSATION_TOKENS
             'Chat:CacheSimilarityScore' = $env:AZURE_CHAT_CACHE_SIMILARITY_SCORE
-            'Chat:ProductSimilarityScore' = $env:AZURE_CHAT_PRODUCT_SIMILARITY_SCORE
             'Chat:ProductMaxResults' = $env:AZURE_CHAT_PRODUCT_MAX_RESULTS
         }
         $userSecrets | ConvertTo-Json | dotnet user-secrets set --project ./src/cosmos-copilot.csproj
@@ -49,9 +48,8 @@ hooks:
             --arg cosmosDbProductContainer $AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME \
             --arg chatMaxConversationTokens $AZURE_CHAT_MAX_CONVERSATION_TOKENS \
             --arg chatMaxConversationTokens $AZURE_CHAT_CACHE_SIMILARITY_SCORE \
-            --arg chatMaxConversationTokens $AZURE_CHAT_PRODUCT_SIMILARITY_SCORE \
             --arg chatMaxConversationTokens $AZURE_CHAT_PRODUCT_MAX_RESULTS \
-            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"SemanticKernel:Endpoint":$semanticKernelEndpoint,"SemanticKernel:CompletionDeploymentName":$semanticKernelCompletionDeploymentName,"SemanticKernel:EmbeddingDeploymentName":$semanticKernelEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProdctSimilarityScore":$productSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
+            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"SemanticKernel:Endpoint":$semanticKernelEndpoint,"SemanticKernel:CompletionDeploymentName":$semanticKernelCompletionDeploymentName,"SemanticKernel:EmbeddingDeploymentName":$semanticKernelEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
         echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.csproj
       shell: sh
       continueOnError: false

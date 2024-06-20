@@ -5,8 +5,11 @@ using Azure.Storage.Blobs.Models;
 using Cosmos.Copilot.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
+using Newtonsoft.Json.Linq;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Text.Json;
+using Container = Microsoft.Azure.Cosmos.Container;
 
 namespace Cosmos.Copilot.Services;
 
@@ -68,32 +71,8 @@ public class CosmosDbService
 
     public async Task LoadProductDataAsync()
     {
-        //Read the product container to see if there are any items
-        Product? item = null;
-        try {
-            await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        { }
 
-        if (item is null)
-        {
-            //No items, load the product data from the blob storage
-            BlobContainerClient blobContainerClient = new BlobContainerClient(new Uri("https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/"));
-            BlobClient blobClient = blobContainerClient.GetBlobClient($"product.json");
-            BlobDownloadStreamingResult blobStream = await blobClient.DownloadStreamingAsync();
-            using StreamReader reader = new(blobStream.Content);
-            {
-                string json = reader.ReadToEnd();
-                List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
-
-                foreach (Product product in products)
-                {
-                    await UpsertProductAsync(product);
-                }
-            }
-        }
-
+        List<Product> results = new();
         var queryDef = new QueryDefinition(query: "SELECT * from c");
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
 
@@ -101,22 +80,55 @@ public class CosmosDbService
         {
             FeedResponse<Product> response = await resultSet.ReadNextAsync();
 
-            if (response.Count == 0)
-            {
-                BlobContainerClient blobContainerClient = new BlobContainerClient(new Uri("https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/"));
-                BlobClient blobClient = blobContainerClient.GetBlobClient($"product.json");
-                BlobDownloadStreamingResult blobStream = await blobClient.DownloadStreamingAsync();
-                using StreamReader reader = new(blobStream.Content);
-                {
-                    string json = reader.ReadToEnd();
-                    List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+            results.AddRange(response);
+        }
 
-                    foreach (Product product in products)
-                    {
-                        await UpsertProductAsync(product);
-                    }
-                }
+        foreach (Product product in results)
+        {
+            await _productContainer.DeleteItemAsync<Product>(partitionKey: new PartitionKey(product.categoryId), id: product.id);
+        }
+
+        //Read the product container to see if there are any items
+        Product? item = null;
+        try 
+        {
+            await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { }
+
+        if (item is null)
+        {
+            string json = "";
+            //"https://api.github.com/repos/MicrosoftDocs/mslearn-cosmosdb-modules-central/contents/data/fullset/"
+            string jsonFilePath = @"https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/products.json";
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+            if(response.IsSuccessStatusCode)
+                json = await response.Content.ReadAsStringAsync();
+
+            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+
+            foreach (var product in products)
+            {
+                // Insert each item into Cosmos DB
+                await InsertProductAsync(product);
             }
+
+            ////No items, load the product data from the blob storage
+            //BlobContainerClient blobContainerClient = new BlobContainerClient(new Uri("https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/"));
+            //BlobClient blobClient = blobContainerClient.GetBlobClient($"product.json");
+            //BlobDownloadStreamingResult blobStream = await blobClient.DownloadStreamingAsync();
+            //using StreamReader reader = new(blobStream.Content);
+            //{
+            //    string json = reader.ReadToEnd();
+            //    List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+
+            //    foreach (Product product in products)
+            //    {
+            //        await InsertProductAsync(product);
+            //    }
+            //}
         }
     }
 
@@ -276,10 +288,10 @@ public class CosmosDbService
     /// </summary>
     /// <param name="product">Product item to create or update.</param>
     /// <returns>Newly created product item.</returns>
-    public async Task<Product> UpsertProductAsync(Product product)
+    public async Task<Product> InsertProductAsync(Product product)
     {
         PartitionKey partitionKey = new(product.categoryId);
-        return await _productContainer.UpsertItemAsync<Product>(
+        return await _productContainer.CreateItemAsync<Product>(
             item: product,
             partitionKey: partitionKey
         );
@@ -303,19 +315,26 @@ public class CosmosDbService
     /// </summary>
     /// <param name="product">Product item to delete.</param>
     /// <returns>Array of similar product items.</returns>
-    public async Task<List<Product>> SearchProductsAsync(float[] vectors, double productSimilarityScore, int productMaxResults)
+    public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
     {
         List<Product> results = new();
         
         //Return only the properties we need to generate a completion. Often don't need id values.
-        string queryText = $"SELECT Top {productMaxResults} " +
-            $"p.categoryName, p.sku, p.name p.description, p.price, p.tags" +
-            $"FROM(SELECT s.categoryName, s.sku, s.name s.description, s.price, s.tags, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) p WHERE p.similarityScore > @similarityScore ORDER BY p.similarityScore desc";
+        string queryText = $"""
+            SELECT 
+                Top {productMaxResults} 
+                p.categoryName, p.sku, p.name, p.description, p.price, p.tags
+            FROM 
+                (SELECT s.categoryName, s.sku, s.name, s.description, s.price, s.tags, 
+                VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
+            p 
+            ORDER BY 
+                p.similarityScore desc
+            """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
-            .WithParameter("@vectors", vectors)
-            .WithParameter("@similarityScore", productSimilarityScore);
+            .WithParameter("@vectors", vectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
 
@@ -343,7 +362,11 @@ public class CosmosDbService
 
         string cacheResponse = "";
 
-        string queryText = "SELECT Top 1 x.prompt, x.completion, x.similarityScore FROM(SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
+        string queryText = $"""
+            SELECT Top 1 x.prompt, x.completion, x.similarityScore 
+                FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
+            x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+            """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)

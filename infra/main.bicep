@@ -41,7 +41,6 @@ var tags = {
 var chatSettings = {
   maxConversationTokens: '100'
   cacheSimilarityScore: '0.99'
-  productSimilarityScore: '0.95'
   productMaxResults: '10'
 }
 
@@ -86,14 +85,12 @@ module web 'app/web.bicep' = {
       productContainer: database.outputs.containers[2].name
     }
     openAiSettings: {
-      maxConversationTokens: ai.outputs.maxConversationTokens
       completionDeploymentName: ai.outputs.deployments[0].name
       embeddingDeploymentName: ai.outputs.deployments[1].name
     }
     chatSettings: {
       maxConversationTokens: chatSettings.maxConversationTokens
       cacheSimilarityScore: chatSettings.cacheSimilarityScore
-      productSimilarityScore: chatSettings.productSimilarityScore
       productMaxResults: chatSettings.productMaxResults
     }
     userAssignedManagedIdentity: {
@@ -141,5 +138,4 @@ output AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME string = ai.outputs.deployments[1]
 // Chat outputs
 output AZURE_CHAT_MAX_CONVERSATION_TOKENS string = chatSettings.maxConversationTokens
 output AZURE_CHAT_CACHE_SIMILARITY_SCORE string = chatSettings.cacheSimilarityScore
-output AZURE_CHAT_PRODUCT_SIMILARITY_SCORE string = chatSettings.productSimilarityScore
 output AZURE_CHAT_PRODUCT_MAX_RESULTS string = chatSettings.productMaxResults
