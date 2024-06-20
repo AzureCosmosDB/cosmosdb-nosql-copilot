@@ -64,17 +64,19 @@ public class CosmosDbService
 
         _productContainer = productContainer ??
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
-
-        LoadProductDataAsync().Wait();
     }
 
-    private async Task LoadProductDataAsync()
+    public async Task LoadProductDataAsync()
     {
-
         //Read the product container to see if there are any items
-        Product item = await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+        Product? item = null;
+        try {
+            await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { }
 
-        if (item == null)
+        if (item is null)
         {
             //No items, load the product data from the blob storage
             BlobContainerClient blobContainerClient = new BlobContainerClient(new Uri("https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/"));

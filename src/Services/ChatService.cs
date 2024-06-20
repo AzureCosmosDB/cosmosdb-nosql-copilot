@@ -26,6 +26,11 @@ public class ChatService
         _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults: 10;
     }
 
+    public async Task InitializeAsync()
+    {
+        await _cosmosDbService.LoadProductDataAsync();
+    }
+
     /// <summary>
     /// Returns list of chat session ids and names for left-hand nav to bind to (display Name and ChatSessionId as hidden)
     /// </summary>
