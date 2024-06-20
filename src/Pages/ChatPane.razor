@@ -204,8 +204,10 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await chatService.InitializeAsync();
+
         _onMessagePosted += async (o, e) =>
         {
             await this.InvokeAsync(async () =>
