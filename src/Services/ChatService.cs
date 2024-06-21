@@ -121,14 +121,14 @@ public class ChatService
             float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
 
             //Perform vector search for products
-            List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
+            //List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
 
             //Generate a completion and tokens used with current context window (just user prompts, no vector search results, non RAG Pattern)
-            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
+            (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
             //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
 
             //Generate a completion and tokens used from current context window and vector search results
-            (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
             //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
 
             //Cache the prompts in the current context window and their vectors with the generated completion
