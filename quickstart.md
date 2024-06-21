@@ -26,7 +26,7 @@ This application allows you to configure how large the context window can be (le
 
 Large language models are amazing with their ability to generate completions to a user's questions. However, these requests to generate completions from an LLM are computationally expensive (expressed in tokens) and can also be quite slow. This cost and latency increases as the amount of text increases. 
 
-In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience.
+In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience. (See below for how to do RAG Pattern in this sample)
 
 Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**. 
 
@@ -58,7 +58,11 @@ To test we will repeat the above sequence with slightly modified prompts.
 
     This was essentially the same question with the same intent. So why didn't it result in a cache hit? The reason is the similarity score. It defaults to a value of `0.99`. This means that the question must be nearly exactly the same as what was cached.
 
-1. Open the the **appsettings.Development.json** file in the project. Edit the **CacheSimilarityScore** value and adjust it from `0.99` to `0.95`. Save the file.
+This next step requires running the sample locally.
+
+1. Open the the **appsettings.Development.json** file in the project (if in Visual Studio, open *Manage Secrets* in the Solution Explorer). Edit the **CacheSimilarityScore** value and adjust it from `0.99` to `0.95`. Save the file. 
+
+**Note:** If you don't have an appsettings.Development.json file, create it using appsettings.json as a template. Then go to the environment variables in your deployed web application and copy the values.
 
 1. Relaunch the application.
 1. Start a new Chat Session.
@@ -70,7 +74,57 @@ You can Spend time trying different sequences of questions (and follow up questi
 
 # Semantic Kernel
 
-The last section dives into the LLM orchestration SDK created by Microsft Research called, Semantic Kernel. Semantic Kernel is an open-source SDK that lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can connect it to various vector databases using built-in connectors. By combining your existing C#, Python, and Java code with these models, you can build agents that answer questions and automate processes.
+This project highlights the LLM orchestration SDK created by Microsft Research called, Semantic Kernel. Semantic Kernel is an open-source SDK that lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can connect it to various vector databases using built-in connectors. By combining your existing C#, Python, and Java code with these models, you can build agents that answer questions and automate processes.
 
-There aren't any unique tests you can do in this sample with Semantic Kernel that are not already covered here. But you can look through the code at the **SemanticKernelService.cs** implemented in this sample as well as in the **ChatService.cs** where it is used. The sample is very simple, intended to just give you a quick start in exploring its features and capabilities.
+The usage in this sample is very simple and just show the built-in plugins for OpenAI, intended to just give you a quick start in exploring its features and capabilities.
 
+**Note:** This solution yet doesn't implement the Azure Cosmos DB NoSQL connectors for Semantic Kernel. This will be in an upcoming update for this sample.
+
+## Quickstart: Semantic Kernel
+Here we will change all the calls made directly to OpenAI Service to go though Semantic Kernel. Open the solution for the application. Follow the steps:
+
+1. In ChatService, comment the lines that call `_openAiService` then uncomment the ones below that call `_semanticKernelService` in these three places.
+    1. `GetChatCompletionAsync()`
+    1. `SummarizeChatSessionNameAsync()` 
+    1. `GetCacheAsync()`
+1. Restart the application.
+
+You won't see any difference in the execution for the application. The purpose of SDK's like Semantic Kernel is to provide a surface area for building more complex types of these applications. Navigate to the Semantic Kernel class and you can see how the built-in OpenAI plugins are used.
+
+
+# RAG Pattern
+
+The last thing to highlight in this solution is the ability to augment the completions generated by a LLM by sending it additional data to use. This is commonly referred to as RAG Pattern or Retrieval Augmented Generation. This data can be anything from files to data from a database. In this sample we demonstrate how you can use a vector search on product data for a bike shop in Azure Cosmos DB to augment the responses from the LLM. To see this in action, navigate to the `GetChatCompletionAsync()` function in the ChatService, uncomment the call to `SearchProductsAsync()`, comment the call to `GetChatCompletionAsync()` and uncomment the call to `GetRagCompletionAsync()`.
+
+One thing to take note of is the system prompt used for the completion is much different. It is worth noting the differences between the one you have been using versus this one. To see them both, navigate to the `OpenAiService` and at the top of the class look for the variables, `_systemPrompt` and `_systemPromptRetailAssistant`
+
+## Quickstart: RAG Pattern
+Here we will show how to augment our sample to include custom data as part of the generation. In this example we will include a product catalog for a bike shop. Users can ask questions about bikes and biking accessories in the catalog. The user's prompt is vectorized and used to execute a vector search against the vectorized product data in the catalog. The most relevant items are returned then passed to the LLM to generate a response. 
+
+Open the solution for the application. Follow the steps:
+
+1. In ChatService, navigate to `GetChatCompletionAsync()`, then make the following changes.
+    1. Uncomment the call to `_cosmosDbService.SearchProductsAsync()` 
+    1. Comment the calls to both `_openAiService.GetChatCompletionAsync()` and `_semanticKernelService.GetChatCompletionAsync()`
+    1. Uncomment the call to either `_openAiService.GetRagCompletionAsync()` and `_semanticKernelService.GetRagCompletionAsync()`
+1. Change the **cacheSimilarityScore** back to 0.99
+
+Let's observe the RAG Pattern code in action. Follow the steps after launching the application:
+
+1. Launch the application locally or in Codespaces.
+1. Press the "Clear Cache" button.
+1. Start a new Chat Session.
+1. Enter a question, `What bikes do you have?`
+1. Enter a follow up question, `Do you have any in red?`
+
+Here you the LLM responds with data from our bike product catalog. You may also notice that the responses tend to take longer to generate. This is partially due to the vector search but bulk of execution is due to the LLM needing to process is now much larger as it includes the context window as well as a large amount of data from the vector search. You should also notice that the amount of tokens consumed for the completions is now higher than it was for the previous sessions.
+
+It is here where features like a semantic cache can be helpful. Let's see what happens when the response is returned from the cache.
+
+1. Start a new Chat Session.
+1. Enter a question, `What bikes do you have?`
+1. Enter a follow up question, `Do you have any in red?`
+
+You will notice that both responses returned from the cache consumed zero tokens and had quicker reponse times.
+
+We hope you enjoyed this series of quick starts. Feel free to take this sample and customize and use.

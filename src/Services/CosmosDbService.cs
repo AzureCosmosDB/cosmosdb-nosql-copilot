@@ -4,6 +4,8 @@ using Cosmos.Copilot.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using System.Collections.ObjectModel;
+using System.Text.Json;
+using Container = Microsoft.Azure.Cosmos.Container;
 
 namespace Cosmos.Copilot.Services;
 
@@ -11,13 +13,15 @@ public class CosmosDbService
 {
     private readonly Container _chatContainer;
     private readonly Container _cacheContainer;
+    private readonly Container _productContainer;
 
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName)
+    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
 
         CosmosSerializationOptions options = new()
         {
@@ -33,10 +37,14 @@ public class CosmosDbService
         Database database = client.GetDatabase(databaseName)!;
         Container chatContainer = database.GetContainer(chatContainerName)!;
         Container cacheContainer = database.GetContainer(cacheContainerName)!;
+        Container productContainer = database.GetContainer(productContainerName)!;
 
         _chatContainer = chatContainer ??
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
         _cacheContainer = cacheContainer ??
+            throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
+
+        _productContainer = productContainer ??
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
     }
 
@@ -65,6 +73,29 @@ public class CosmosDbService
         return cacheResponse;
     }
 
+    public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
+    {
+        List<Product> results = new();
+
+        //Return only the properties we need to generate a completion. Often don't need id values.
+        string queryText = "";
+
+        var queryDef = new QueryDefinition(
+                query: queryText)
+            .WithParameter("@vectors", vectors);
+
+        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
+
+        while (resultSet.HasMoreResults)
+        {
+            FeedResponse<Product> response = await resultSet.ReadNextAsync();
+
+            results.AddRange(response);
+        }
+
+        return results;
+    }
+
     private static Container CreateCacheContainer(Database database, string cacheContainerName)
     {
         ThroughputProperties throughputProperties = ThroughputProperties.CreateAutoscaleThroughput(4000);
@@ -90,7 +121,7 @@ public class CosmosDbService
                     new VectorIndexPath()
                     {
                         Path = "/vectors",
-                        Type = VectorIndexType.QuantizedFlat
+                        Type = VectorIndexType.DiskANN
                     }
                 }
             }
@@ -245,6 +276,53 @@ public class CosmosDbService
             foreach (CacheItem item in response)
             {
                 await _cacheContainer.DeleteItemAsync<CacheItem>(partitionKey: new PartitionKey(item.Id), id: item.Id);
+            }
+        }
+    }
+
+    public async Task<Product> InsertProductAsync(Product product)
+    {
+        PartitionKey partitionKey = new(product.categoryId);
+        return await _productContainer.CreateItemAsync<Product>(
+            item: product,
+            partitionKey: partitionKey
+        );
+    }
+
+    public async Task DeleteProductAsync(Product product)
+    {
+        PartitionKey partitionKey = new(product.categoryId);
+        await _productContainer.DeleteItemAsync<Product>(
+            id: product.id,
+            partitionKey: partitionKey
+        );
+    }
+
+    public async Task LoadProductDataAsync()
+    {
+
+        //Read the product container to see if there are any items
+        Product? item = null;
+        try
+        {
+            await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { }
+
+        if (item is null)
+        {
+            string json = "";
+            string jsonFilePath = @"https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/products.json";
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+            if (response.IsSuccessStatusCode)
+                json = await response.Content.ReadAsStringAsync();
+
+            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+            foreach (var product in products)
+            {
+                await InsertProductAsync(product);
             }
         }
     }

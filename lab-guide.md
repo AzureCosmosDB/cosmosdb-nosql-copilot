@@ -1,6 +1,6 @@
 # Integrate Azure OpenAI Service and Azure Cosmos DB for copilot apps
 
-In this hands-on lab, we will show you how to design and build an application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI service by creating a Generative AI chat experience. This hands-on lab will provide practical insights into generating embeddings on user input, generating responses from an LLM, managing chat history for conversational context, building a semantic cache to enhance performance, and an introduction to using Semantic Kernel which can be used to build more complex scenarios. The skills in this lab will give you a solid foundation for to create your own AI copilot.
+In this hands-on lab, we will show you how to design and build an application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI service by creating a Generative AI chat experience. This hands-on lab will provide practical insights into generating embeddings on user input, generating responses from an LLM, managing chat history for conversational context, building a semantic cache to enhance performance, an introduction to using Semantic Kernel which can be used to build more complex scenarios and finally how to enhance LLM responses by including custom user data to build RAG Pattern for Generative-AI applications. The skills in this lab will give you a solid foundation for to create your own AI copilot.
 
 ## What are we doing?
 
@@ -11,7 +11,7 @@ This lab guides you through the steps to implement Generative AI capabilities fo
 1. Implement and test a chat history feature to allow for more natural conversational interactions. 
 1. Implement and test a semantic cache for improved performance.
 1. Connect to and implement Semantic Kernel SDK as a starting point for building more elaborate Generative AI solutions.
-
+1. Implement RAG Pattern using custom data for augmented LLM reponses.
 
 
 # Prepare
@@ -241,9 +241,9 @@ But before we write the code, we need to first understand the concept of tokens.
 
 ## Tokens in Large Language Models
 
-Large language models require chat history to generate contextually relevant results. But there is a limit how much text you can send. Large language models have limits on how much text they can process in a request and output in a response. These limits are not expressed as words, but as **tokens**. Tokens represent words or part of a word. On average 4 characters is one token. Tokens are essentially the compute currency for large language model. Because of this limit on tokens, it is therefore necessary to limit them. This can be a bit tricky in certain scenarios. You will need to ensure enough context for the LLM to generate a correct response, while avoiding negative results of consuming too many tokens which can include incomplete results or unexpected behavior.
+Large language models require chat history to generate contextually relevant results. But large language models have limits on how much text they can process in a request and output in a response. These limits are not expressed as words, but as **tokens**. Tokens represent words or part of a word. On average 4 characters is one token. Tokens are essentially the compute currency for large language model. Because of this limit on tokens, it is therefore necessary to manage them within your app. This can be a bit tricky in certain scenarios. You will need to ensure enough context for the LLM to generate a correct response, while avoiding negative results of consuming too many tokens which can include incomplete results or unexpected behavior.
 
-So to limit the maximum amount of chat history (and text) we send to our LLM, we will count the tokens for each user prompt and completion up to the amount specified in the **_maxConversationTokens** variable in the function we will now implement.
+To limit the maximum amount of chat history (and text) we send to our LLM, we will count the tokens for each user prompt and completion up to the amount specified in the **_maxConversationTokens** variable in the function we will now implement.
 
 ## Building a context window using tokens
 
@@ -339,13 +339,13 @@ Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file
 
 Large language models are amazing with their ability to generate completions to a user's questions. However, these requests to generate completions from an LLM are computationally expensive (expressed in tokens) and can also be quite slow. This cost and latency increases as the amount of text increases. 
 
-In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience.
+In a pattern called Retrieval Augmented Generation or *RAG Pattern* (which we will show you in the last module of this lab), data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience.
 
 Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**. 
 
 Traditional caches are key-value pairs and use an equality match on the key to *get* data. Keys for a semantic cache are vectors (or embeddings) which represent words in a high dimensional space where words with similar meaning or intent are in close proximity to each other dimensionally. 
 
-A cache **GET** is done with a specialized **vector query** in which the match is done comparing the proximity of these vectors. The results are a cached completion previously generated by an LLM. Vector queries include a **similarity score** that represents how close the vectors are to each other. Values range from 0 (no similarity) to 1 (exact match).
+A cache **GET** is done with a specialized **vector query** in which the match is done comparing the proximity of these vectors. The results are the cached completion previously generated by an LLM. Vector queries include a **similarity score** that represents how close the vectors are to each other. Values range from 0 (no similarity) to 1 (exact match).
 
 To execute a vector query for a semantic cache, user text is converted into vectors and then used as the filter predicate to search for similar vectors in the cache. For our semantic cache, we will create a query that returns just one result, and we use a similarity score as a way to dial in, how close the user's intent and words are to the cache's key values. The greater the score, the more similar the words and intent. The lower the score, the less similar the words *and potentially* intent as well.
 
@@ -434,7 +434,7 @@ Let's build our semantic cache.
             x.similarityScore desc";
     ```
 
-    This query is what performs the vector query to find items in our semantic cache. Since this is a cache, it selects only the top result with an *ORDER BY* in descending order, so the item with highest similarity score (and the most similar to what is being searched) appears first. The results include cached completion value, and the similarity score for the cached item.
+    This query is what performs the search to find items in our semantic cache. Since this is a cache, it selects only the closest match with a descending *ORDER BY*, so the item with highest similarity score (and the most similar to what is being searched) appears first. The results include a previously cached completion, and the similarity score for the cached item.
 
 1. Click Save on the file to save the new query text.
 
@@ -836,15 +836,264 @@ If the session name summarization does not work as expected, review the **Summar
 </details>
 
 
+# Exercise: Imlement RAG Pattern
+
+In this final exercise we will implement the RAG Pattern for our application. RAG is short for Retrieval Augmented Generation which is a fancy way of saying that the LLM will generate a completion using data retrieved elsewhere. The source of this data can be anything including files or data from a database. Often the data is the result of some sort of search where the results are semantically relevant to what the user is asking for. This often involves the use of a vector search against a database. The results of that search are passed with the context window and user prompt to then generate a response. This workflow for RAG Pattern is similar to what we have already implemented and generally maps to the following steps:
+
+    1. User types in a user prompt or question.
+    1. The user prompt is vectorized by an embeddings model, returned as an array of vectors.
+    1. These vectors are used in a vector search. Results are returned ordered by semantic similarity.
+    1. The search results and the context window (chat history) with the latest user prompt are sent to the LLM.
+    1. The LLM processes all of the text in the payload and generates a response.
+
+## Vector Search on user data
+
+The first step is to implement the vector search query in our application.
+
+1. Navigate to the **CosmosDbService.cs** class and locate the **SearchProductsAsync()** function. We need to modify this function to implement the vector query we will use to search our product data. Locate the comment and the `queryText` variable. Then modify that variable with the code as seen below.
+
+    ```csharp
+    //Return only the properties we need to generate a completion. Often don't need id values.
+    string queryText = $"""
+    SELECT 
+        Top {productMaxResults} 
+        p.categoryName, p.sku, p.name, p.description, p.price
+    FROM 
+        (SELECT s.categoryName, s.sku, s.name, s.description, s.price, 
+        VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
+    p 
+    ORDER BY 
+        p.similarityScore desc
+    """;
+    ```
+
+This query does a few things including:
+
+    1. Uses a TOP statement to limit the number of products that are returned by the search. Because LLM's can only process so much text at once, it is necessary to limit the amount of data returned by a vector search. The `productMaxResults` value limits that amount of data and because this is something you will need to adjust when doing vector searches, it is config value in this application.
+    1. Uses the `VectorDistance()` system function in Azure Cosmos DB to perform the vector search using the passed-in vectors generated by the user prompt.
+    1. Projects out the properties useful to the LLM to generate a response. For our product catalog this includes relevant product information including, product and category name, description and price.
+    1. Orders the results by the similarity score calculated by the `VectorDistance()` system function by most semantically relevant to least relevant. 
+    
+    Because we are using this calculated similarity score in our ORDERY BY, we have to execute the system function as a subquery so the projected `similarityScore` can then be used in the ORDERY BY statement in the outer query. If we were not doing this, the query would not require a subquery. However, in nearly all cases you will want to rank the order of the results so your vector queries will look similar.
+
+1. Save the **CosmosDbService.cs** file.
+
+## System Prompts and Generating the Completion
+
+We need to modify the payload we send to the LLM to generate the completion to include our new vector search results data. We also need to modify the system prompt we use to instruct the LLM on how to generate the completion.
+
+1. Navigate to the **OpenAiService.cs** class. At the top of the class locate the `_systemPromptRetailAssistant` string variable. Modify it to include our new system prompt, as seen below.
+
+    ```csharp
+    private readonly string _systemPromptRetailAssistant = @"
+        You are an intelligent assistant for the Cosmic Works Bike Company. 
+        You are designed to provide helpful answers to user questions about 
+        bike products and accessories provided in JSON format below.
+
+        Instructions:
+        - Only answer questions related to the information provided below,
+        - Don't reference any product data not provided below.
+        - If you're unsure of an answer, you can say ""I don't know"" or ""I'm not sure"" and recommend users search themselves.
+
+        Text of relevant information:";
+    ```
+
+Compare this system prompt to our original `_systemPrompt`. Both are similiar in providing information for how the AI Agent should behave. However, the new system prompt provides greater context and a clear list of instructions for what it is supposed to do. It also provides a placeholder for where it should expect to see additional information. 
+
+1. We next need to modify the function that will call the LLM.
+
+1. Navigate to the **OpenAiService.cs** class and locate the **GetRagCompletionAsync()** function. 
+
+1. At the top of the function, locate the lines below, then add the following comment and line of code that serializes the `List<Product> products` function parameter to a string, as seen below.
+
+    ```csharp
+    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, List<Product> products)
+    {
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonConvert.SerializeObject(products);
+
+        //Serialize the conversation to a string to send to OpenAI
+        string contextWindowString = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt + " " + m.Completion));
+    
+    ```
+
+1. Further down, in the function, locate the `Messages` array in the `ChatCompletionOptions` object. Then add a new `ChatRequestSystemMessage`, as seen below.
+
+    ```csharp
+    DeploymentName = _completionDeploymentName,
+    Messages =
+    {
+        new ChatRequestSystemMessage(_systemPromptRetailAssistant + productsString),
+        new ChatRequestUserMessage(contextWindowString)
+    },
+    ```
+    It is here where the vector search results are sent to the LLM, appended as part of the system prompt that we defined above with the placeholder for additional information.
+
+1. Save the **ChatService.cs** file.
+
+## Putting it all together
+
+The last step for our RAG Pattern implementation is to modify our LLM Pipeline function in our application so that it executes the vector search we defined and calls our new Completion function to generate the response.
+
+1. Navigate to the **ChatService.cs** class and locate the **GetChatCompletionAsync()** function. 
+
+1. Locate the lines of code that calls `GetEmbeddingsAsync()` in the function. Then add the following comment and line of code that calls `SearchProductAsync()`, as seen below.
+
+    ```csharp
+        else  //Cache miss, send to OpenAI to generate a completion
+        {
+            //float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
+            float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+
+            //Perform vector search for products
+            List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
+    
+    ```
+
+1. Just below this, we will comment out the two calls to `GetChatCompletionAsync()` and replace with a call to our new function `GetRagCompletionAsync()` that takes products returned from our vector search above. There is a verion of this function in both OpenAiService and SemanticKernelService. We will use the first one and comment out the second, as seen below.
+
+    ```csharp
+    //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
+    //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
+
+    (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
+    //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
+
+    //Cache the prompts in the current context window and their vectors with the generated completion
+    await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
+    ```
+
+1. Save the **ChatService.cs** file.
+
+## Check your work
+
+At this point, your application is ready to test our RAG Pattern implementation. Let's run our application and test it.
+
+1. Return to the terminal and run it using **dotnet run**.
+
+    ```bash
+    dotnet run
+    ```
+
+1. Visual Studio Code launches the in-tool simple browser again with the web application running. 
+
+1. First we will test our RAG Pattern app with its new vector search, system prompt and response generation. In the web application, create a new chat session and ask, `What bikes do you have?`. The AI assistant should respond with a list of bikes available from the product catalog. 
+
+1. Next, let's ask a follow up question. `Do you have any bikes in red?`. The AI assistant should then respond with a list of bikes available in red only.
+
+Let's also test the semantic cache with our new RAG Pattern. Semantic cache is a valuable feature to have in a RAG Pattern application because the amount of tokens required to generate responses from the increased amount of text and data can be much greater. It also takes longer to generate the responses. Serving responses from the cache will save on both.
+
+1. In the web application, create a new chat session and ask, `What bikes do you have?`. The AI assistant should respond with the same list of bikes available from the product catalog with *(cached response)* appended to the response and zero tokens consumed. The response should also be noticably quicker than before when it has to execute a vector search and generate the resonse from the LLM.
+
+1. Close the terminal.
+
+<details>
+    <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
+
+</br>
+
+If you get responses indicating there was no data to generate a response, the vector search is likely not workng as expected. Navigate to the **CosmosDbService** and locate the `SearchProductsAsync()` method to make sure that your code matches this sample.
+ 
+    ```csharp
+    public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
+    {
+        List<Product> results = new();
+        
+        //Return only the properties we need to generate a completion. Often don't need id values.
+        string queryText = $"""
+            SELECT 
+                Top {productMaxResults} 
+                p.categoryName, p.sku, p.name, p.description, p.price, p.tags
+            FROM 
+                (SELECT s.categoryName, s.sku, s.name, s.description, s.price, s.tags, 
+                VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
+            p 
+            ORDER BY 
+                p.similarityScore desc
+            """;
+
+        var queryDef = new QueryDefinition(
+                query: queryText)
+            .WithParameter("@vectors", vectors);
+
+        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
+
+        while (resultSet.HasMoreResults)
+        {
+            FeedResponse<Product> response = await resultSet.ReadNextAsync();
+
+            results.AddRange(response);
+        }
+
+        return results;
+    }
+    ```
+
+If you get other strange behavior for the completion, it's posible the system prompt is not correct. Navigate to the **OpenAiService** and locate the system prompts at the top of the class. Review `_systemPromptRetailAssistant` variable to make sure that your code matches this sample.
+ 
+    ```csharp
+    private readonly string _systemPromptRetailAssistant = @"
+    You are an intelligent assistant for the Cosmic Works Bike Company. 
+    You are designed to provide helpful answers to user questions about 
+    bike products and accessories provided in JSON format below.
+
+    Instructions:
+    - Only answer questions related to the information provided below,
+    - Don't reference any product data not provided below.
+    - If you're unsure of an answer, you can say ""I don't know"" or ""I'm not sure"" and recommend users search themselves.
+
+    Text of relevant information:";
+    ```
+
+Finally, if the responses do not include any information on the bike products being asked, it's possible the call to OpenAI Service is not correct. Further down in **OpenAiSerice** locate the `GetRagCompletionAsync()` method to make sure that your code matches this sample.
+ 
+    ```csharp
+    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, List<Product> products)
+    {
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonConvert.SerializeObject(products);
+
+        //Serialize the conversation to a string to send to OpenAI
+        string contextWindowString = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt + " " + m.Completion));
+
+        ChatCompletionsOptions options = new()
+        {
+            DeploymentName = _completionDeploymentName,
+            Messages =
+            {
+                new ChatRequestSystemMessage(_systemPromptRetailAssistant + productsString),
+                new ChatRequestUserMessage(contextWindowString)
+            },
+            User = sessionId,
+            MaxTokens = 1000,
+            Temperature = 0.2f,
+            NucleusSamplingFactor = 0.7f,
+            FrequencyPenalty = 0,
+            PresencePenalty = 0
+        };
+
+        Response<ChatCompletions> completionsResponse = await _client.GetChatCompletionsAsync(options);
+
+        ChatCompletions completions = completionsResponse.Value;
+
+        string completion = completions.Choices[0].Message.Content;
+        int tokens = completions.Usage.CompletionTokens;
+
+        return (completion, tokens);
+    }
+    ```
+</details>
+
+
 # Summary
 
-You have successfully implemented our new chat application using the services Azure Cosmos DB, Azure OpenAI Service in Azure. You have learned new concepts for building Generative AI applications such as tokens, context windows, semantic caching and similarity scores.
+You have successfully implemented our new Generative AI application using the services Azure Cosmos DB, Azure OpenAI Service in Azure. You have learned new concepts for building Generative AI applications such as tokens, context windows, semantic caching,  similarity scores and RAG Pattern.
 
 With the SDKs for Azure Cosmos DB for NoSQL, Azure OpenAI Service and Semantic Kernel, you were able to add these services to your application with little friction. The services you implemented illustrate the best practices for using each SDK across various operations. The .NET SDKs for each service made it possible to add the required functionality to your ASP.NET Core Blazor web application with lightweight method implementations.
 
 ## References
 
-This hands on lab is available as a completed sample here, [Build a Chat App using Azure Cosmos DB](https://github.com/Azure-Samples/cosmosdb-chatgpt/)
+This hands on lab is available as a completed sample here, [Build a custom Copilot application](https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
 
 
 Take some time to explore the services and capabilities you saw today to get more familiar with them.
@@ -858,5 +1107,5 @@ Take some time to explore the services and capabilities you saw today to get mor
 Take your knowledge even further. We have built a complete end-to-end RAG Pattern solution that takes this lab you did today and expands it to a fully functional, production grade solution accelerator. The solution has the same ASP.NET Blazor web interface and the back end is entirely built using the latest features from Semantic Kernel. The solution can be deployed to either AKS or Azure Container Apps, along with a host of other services designed for deploying production grade applications in Azure.
 
 - **Official Microsoft Solution Accelerator for building RAG pattern applications**
-  - [Vector search AI assistant](https://github.com/Azure/Vector-Search-AI-Assistant)
+  - [Build your own Copilot Solution Accelerator](https://github.com/Azure/BuildYourOwnCopilot)
 
