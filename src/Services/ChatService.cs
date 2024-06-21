@@ -10,8 +10,9 @@ public class ChatService
     private readonly SemanticKernelService _semanticKernelService;
     private readonly int _maxConversationTokens;
     private readonly double _cacheSimilarityScore;
+    private readonly int _productMaxResults;
 
-    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, string maxConversationTokens, string cacheSimilarityScore)
+    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, string maxConversationTokens, string cacheSimilarityScore, string productMaxResults)
     {
         _cosmosDbService = cosmosDbService;
         _openAiService = openAiService;
@@ -19,6 +20,12 @@ public class ChatService
 
         _maxConversationTokens = Int32.TryParse(maxConversationTokens, out _maxConversationTokens) ? _maxConversationTokens : 100;
         _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
+        _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults : 10;
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _cosmosDbService.LoadProductDataAsync();
     }
 
     public async Task<Message> GetChatCompletionAsync(string? sessionId, string promptText)
