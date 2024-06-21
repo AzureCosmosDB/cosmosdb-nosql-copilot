@@ -1,13 +1,8 @@
 ﻿using Azure.Core;
 using Azure.Identity;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Cosmos.Copilot.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
-using Newtonsoft.Json.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 
@@ -72,22 +67,6 @@ public class CosmosDbService
     public async Task LoadProductDataAsync()
     {
 
-        List<Product> results = new();
-        var queryDef = new QueryDefinition(query: "SELECT * from c");
-        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
-
-        while (resultSet.HasMoreResults)
-        {
-            FeedResponse<Product> response = await resultSet.ReadNextAsync();
-
-            results.AddRange(response);
-        }
-
-        foreach (Product product in results)
-        {
-            await _productContainer.DeleteItemAsync<Product>(partitionKey: new PartitionKey(product.categoryId), id: product.id);
-        }
-
         //Read the product container to see if there are any items
         Product? item = null;
         try 
@@ -100,7 +79,6 @@ public class CosmosDbService
         if (item is null)
         {
             string json = "";
-            //"https://api.github.com/repos/MicrosoftDocs/mslearn-cosmosdb-modules-central/contents/data/fullset/"
             string jsonFilePath = @"https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/products.json";
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(jsonFilePath);
@@ -108,27 +86,10 @@ public class CosmosDbService
                 json = await response.Content.ReadAsStringAsync();
 
             List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
-
             foreach (var product in products)
             {
-                // Insert each item into Cosmos DB
                 await InsertProductAsync(product);
             }
-
-            ////No items, load the product data from the blob storage
-            //BlobContainerClient blobContainerClient = new BlobContainerClient(new Uri("https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/"));
-            //BlobClient blobClient = blobContainerClient.GetBlobClient($"product.json");
-            //BlobDownloadStreamingResult blobStream = await blobClient.DownloadStreamingAsync();
-            //using StreamReader reader = new(blobStream.Content);
-            //{
-            //    string json = reader.ReadToEnd();
-            //    List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
-
-            //    foreach (Product product in products)
-            //    {
-            //        await InsertProductAsync(product);
-            //    }
-            //}
         }
     }
 
