@@ -16,7 +16,6 @@ param databaseAccountEndpoint string
 param openAiAccountEndpoint string
 
 type openAiOptions = {
-  maxConversationTokens: int
   completionDeploymentName: string
   embeddingDeploymentName: string
 }
@@ -28,10 +27,19 @@ type cosmosDbOptions = {
   database: string
   chatContainer: string
   cacheContainer: string
+  productContainer: string
 }
-
 @description('Application configuration settings for Azure Cosmos DB.')
 param cosmosDbSettings cosmosDbOptions
+
+type chatOptions = {
+  maxConversationTokens: string
+  cacheSimilarityScore: string
+  productMaxResults: string
+}
+
+@description('Application configuration settings for Chat Service.')
+param chatSettings chatOptions
 
 type managedIdentity = {
   resourceId: string
@@ -79,7 +87,6 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       OPENAI__ENDPOINT: openAiAccountEndpoint
       OPENAI__COMPLETIONDEPLOYMENTNAME: openAiSettings.completionDeploymentName
       OPENAI__EMBEDDINGDEPLOYMENTNAME: openAiSettings.embeddingDeploymentName
-      OPENAI__MAXCONVERSATIONTOKENS: openAiSettings.maxConversationTokens
       SEMANTICKERNEL__ENDPOINT: openAiAccountEndpoint
       SEMANTICKERNEL__COMPLETIONDEPLOYMENTNAME: openAiSettings.completionDeploymentName
       SEMANTICKERNEL__EMBEDDINGDEPLOYMENTNAME: openAiSettings.embeddingDeploymentName
@@ -87,6 +94,10 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       COSMOSDB__DATABASE: cosmosDbSettings.database
       COSMOSDB__CHATCONTAINER: cosmosDbSettings.chatContainer
       COSMOSDB__CACHECONTAINER: cosmosDbSettings.cacheContainer
+      COSMOSDB__PRODUCTCONTAINER: cosmosDbSettings.productContainer
+      CHAT_MAXCONVERSATIONTOKENS: chatSettings.maxConversationTokens
+      CHAT_CACHESIMILARITYSCORE: chatSettings.cacheSimilarityScore
+      CHAT_PRODUCTMAXRESULTS: chatSettings.productMaxResults
       AZURE_CLIENT_ID: userAssignedManagedIdentity.clientId
     }
   }

@@ -54,4 +54,4 @@ output deployments array = [
     name: openAiModelDeployments[index].outputs.name
   }
 ]
-output maxConversationTokens int = 2000
+

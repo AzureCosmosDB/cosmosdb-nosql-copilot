@@ -26,7 +26,7 @@ This application allows you to configure how large the context window can be (le
 
 Large language models are amazing with their ability to generate completions to a user's questions. However, these requests to generate completions from an LLM are computationally expensive (expressed in tokens) and can also be quite slow. This cost and latency increases as the amount of text increases. 
 
-In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience.
+In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience. (See below for how to do RAG Pattern in this sample)
 
 Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**. 
 
@@ -58,7 +58,9 @@ To test we will repeat the above sequence with slightly modified prompts.
 
     This was essentially the same question with the same intent. So why didn't it result in a cache hit? The reason is the similarity score. It defaults to a value of `0.99`. This means that the question must be nearly exactly the same as what was cached.
 
-1. Open the the **appsettings.Development.json** file in the project. Edit the **CacheSimilarityScore** value and adjust it from `0.99` to `0.95`. Save the file.
+1. Open the the **appsettings.Development.json** file in the project (if in Visual Studio, open *Manage Secrets* in the Solution Explorer). Edit the **CacheSimilarityScore** value and adjust it from `0.99` to `0.95`. Save the file. 
+
+**Note:** If you don't have an appsettings.Development.json file, create it using appsettings.json as a template. Then go to the environment variables in your deployed web application and copy the values.
 
 1. Relaunch the application.
 1. Start a new Chat Session.
@@ -70,7 +72,14 @@ You can Spend time trying different sequences of questions (and follow up questi
 
 # Semantic Kernel
 
-The last section dives into the LLM orchestration SDK created by Microsft Research called, Semantic Kernel. Semantic Kernel is an open-source SDK that lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can connect it to various vector databases using built-in connectors. By combining your existing C#, Python, and Java code with these models, you can build agents that answer questions and automate processes.
+This project highlights the LLM orchestration SDK created by Microsft Research called, Semantic Kernel. Semantic Kernel is an open-source SDK that lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can connect it to various vector databases using built-in connectors. By combining your existing C#, Python, and Java code with these models, you can build agents that answer questions and automate processes.
 
-There aren't any unique tests you can do in this sample with Semantic Kernel that are not already covered here. But you can look through the code at the **SemanticKernelService.cs** implemented in this sample as well as in the **ChatService.cs** where it is used. The sample is very simple, intended to just give you a quick start in exploring its features and capabilities.
+There aren't any unique tests you can do in this sample with Semantic Kernel that are not already covered here. But you can look through the code at the **SemanticKernelService.cs** implemented in this sample as well as in the **ChatService.cs** where it is used. To use the Semantic Kernel implementation simply comment out the calls to the _openAIService and uncomment the equivalents calls to _semanticKernelService. The examples here are very simple and just show the built-in plugins for OpenAI, intended to just give you a quick start in exploring its features and capabilities.
 
+**Note:** This solution yet doesn't implement the Azure Cosmos DB NoSQL connectors for Semantic Kernel. This will be in an upcoming update for this sample.
+
+# RAG Pattern
+
+The last thing to highlight in this solution is the ability to augment the completions generated by a LLM by sending it additional data to use. This is commonly referred to as RAG Pattern or Retrieval Augmented Generation. This data can be anything from files to data from a database. In this sample we demonstrate how you can use a vector search on product data for a bike shop in Azure Cosmos DB to augment the responses from the LLM. To see this in action, navigate to the `GetChatCompletionAsync()` function in the ChatService, uncomment the call to `SearchProductsAsync()`, comment the call to `GetChatCompletionAsync()` and uncomment the call to `GetRagCompletionAsync()`.
+
+One thing to take note of is the system prompt used for the completion is much different. It is worth noting the differences between the one you have been using versus this one. To see them both, navigate to the `OpenAiService` and at the top of the class look for the variables, `_systemPrompt` and `_systemPromptRetailAssistant`
