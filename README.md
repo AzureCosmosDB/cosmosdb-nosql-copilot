@@ -15,8 +15,6 @@ azureDeploy: https://raw.githubusercontent.com/AzureCosmosDB/cosmosdb-nosql-copi
 
 This sample application shows how to build a Generative-AI RAG Pattern application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
-![Cosmos DB + ChatGPT user interface](screenshot.png)
-
 ## Concepts Covered
 
 This application demonstrates the following concepts and how to implement them:
@@ -27,7 +25,15 @@ This application demonstrates the following concepts and how to implement them:
 - Manage token consumption and payload sizes for Azure OpenAI Service requests.
 - Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
 - Using the Semantic Kernel SDK for completion and embeddings generation.
-- Implementing RAG Pattern using custom data to augment generated responses from an LLM. 
+- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM. 
+
+### Architecture Diagram
+
+![Architecture Diagram](cosmos-nosql-copilot-diagram.png)
+
+### User Experience
+![Cosmos DB + ChatGPT user interface](screenshot.png)
+
 
 ## Getting Started
 
