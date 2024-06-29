@@ -53,7 +53,7 @@ This application demonstrates the following concepts and how to implement them:
     1. Select the "Features" pane under the "Settings" menu item.
     1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
     1. Read the description to confirm you want to enroll in the preview.
-    1. Select "Enable" to enroll in the preview.
+    1. Select "Enable" to enroll in the Vector Search preview.
 
 ### Instructions
 
