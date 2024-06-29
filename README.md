@@ -39,21 +39,29 @@ This application demonstrates the following concepts and how to implement them:
 
 ### Prerequisites
 
-- Azure Subscription
+- Azure subscription. [Start free](https://azure.microsoft.com/free)
+- .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
-- Azure Cosmos DB for NoSQL Vector Search Preview enrollment
+- Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature)
 
-This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
- 
-1. Navigate to your Azure Cosmos DB for NoSQL resource page.
-1. Select the "Features" pane under the "Settings" menu item.
-1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
-1. Read the description to confirm you want to enroll in the preview.
-1. Select "Enable" to enroll in the preview.
+    #### Vector search Preview details
+    This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
+    
+    1. Navigate to your Azure Cosmos DB for NoSQL resource page.
+    1. Select the "Features" pane under the "Settings" menu item.
+    1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
+    1. Read the description to confirm you want to enroll in the preview.
+    1. Select "Enable" to enroll in the preview.
 
 ### Instructions
+
+1. Run the following command to download this project code:
+
+    ```bash
+    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
+    ```
 
 1. Open a terminal and navigate to the /infra directory in this solution.
 
