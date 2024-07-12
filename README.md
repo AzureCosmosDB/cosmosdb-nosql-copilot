@@ -5,21 +5,23 @@ languages:
 products:
 - azure-cosmos-db
 - azure-openai
-name: Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
+name: Build a Copilot Hands-On-Lab using Azure Cosmos DB & Azure OpenAI Service
 urlFragment: chat-app
-description: Sample application that implements a Generative AI chat application that demonstrates context windows, semantic cache and Semantic Kernel integration.
+description: Hands-On-Lab wiht Starter Solution that demonstrates how to build a Generative AI chat application demonstrating, context windows, semantic cache, Semantic Kernel integration and more.
 azureDeploy: https://raw.githubusercontent.com/azure-samples/cosmosdb-chatgpt/main/azuredeploy.json
 ---
 
-# Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
+# Hands-On-Lab to Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
 
-This sample application shows how to build a Generative-AI application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This Hands-On-Lab and starter solution walks users step-by-step how to build a Generative-AI application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+
+To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab-guide.md) and complete the exercises.
 
 ![Cosmos DB + ChatGPT user interface](screenshot.png)
 
 ## Concepts Covered
 
-This application demonstrates the following concepts and how to implement them:
+This Hands-On-Lab demonstrates the following concepts and how to implement them:
 
 - The basics of building a highly scalable Generative-AI chat application using Azure Cosmos DB for NoSQL.
 - Generating completions and embeddings using Azure OpenAI Service.
@@ -70,11 +72,9 @@ This application demonstrates the following concepts and how to implement them:
     azd up
     ```
 
-### Quickstart
+### Hands-On-Lab
 
-This solution has a number of quickstarts than you can run through to learn about the features in this sample and how to implement them yourself.
-
-Please see [Quickstarts](quickstart.md)
+To run the Hands-On-Lab, follow the Instructions above to download and deploy via AZD then open the [Lab Guide](./lab-guide.md) and complete the exercises.
 
 
 ## Clean up
