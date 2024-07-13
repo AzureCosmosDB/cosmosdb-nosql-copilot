@@ -18,7 +18,7 @@ This lab guides you through the steps to implement Generative AI capabilities fo
 
 You're updating an existing .NET solution that has an ASP.NET Blazor application as its sole project. This project includes service classes for Azure Cosmos DB and Azure OpenAI Service that need to connect to the deployed services in Azure.
 
-Before moving to the next step, ensure you have completed the **Service Deployment** as well as the **Configuring a lab environment** in the [README File](README.md).
+Before moving to the next step, ensure you have completed the **Service Deployment** as well as the **Configuring a lab environment** in the [README File](../README.md).
 
 Once this is complete, you may begin the lab.
 
@@ -42,7 +42,7 @@ This lab assumes the use of Visual Studio Code. However, you may use any IDE you
 1. Open a local **Terminal or Shell**. Change the current working directory where you cloned this application, for example, **C:\Users\Mark\Repos\cosmosdb-chatgpt\src**.
 
     ```bash
-    cd C:\Users\Mark\Repos\cosmosdb-chatgpt\src
+    cd C:\Users\Mark\Repos\cosmosdb-no-sql-copilot\src
     ```
 
 1. Use the **devcontainer CLI** to open the current folder as a development container.
@@ -52,14 +52,6 @@ This lab assumes the use of Visual Studio Code. However, you may use any IDE you
     ```
 
 1. Within **Visual Studio Code**, open a new terminal.
-
-1. Validate that .NET 8 is installed in your environment:
-
-    ```bash
-    dotnet --list-sdks
-    ```
-
-    The command should output .NET version **8.0.0** or higher.
 
 **NOTE:** The remaining exercises in this hands-on lab take place in the context of this development container.
 

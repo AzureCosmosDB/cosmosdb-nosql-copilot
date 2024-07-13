@@ -15,7 +15,7 @@ azureDeploy: https://raw.githubusercontent.com/azure-samples/cosmosdb-chatgpt/ma
 
 This Hands-On-Lab and starter solution walks users step-by-step how to build a Generative-AI application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
-To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab-guide.md) and complete the exercises.
+To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
 
 ![Cosmos DB + ChatGPT user interface](screenshot.png)
 
@@ -74,7 +74,7 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
 
 ### Hands-On-Lab
 
-To run the Hands-On-Lab, follow the Instructions above to download and deploy via AZD then open the [Lab Guide](./lab-guide.md) and complete the exercises.
+To run the Hands-On-Lab, follow the Instructions above to download and deploy via AZD then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
 
 
 ## Clean up
