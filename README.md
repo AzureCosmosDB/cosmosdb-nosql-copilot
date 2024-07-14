@@ -1,16 +1,3 @@
----
-page_type: sample
-languages:
-- csharp
-products:
-- azure-cosmos-db
-- azure-openai
-name: Build a Copilot Hands-On-Lab using Azure Cosmos DB & Azure OpenAI Service
-urlFragment: chat-app
-description: Hands-On-Lab wiht Starter Solution that demonstrates how to build a Generative AI chat application demonstrating, context windows, semantic cache, Semantic Kernel integration and more.
-azureDeploy: https://raw.githubusercontent.com/azure-samples/cosmosdb-chatgpt/main/azuredeploy.json
----
-
 # Hands-On-Lab to Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
 
 This Hands-On-Lab and starter solution walks users step-by-step how to build a Generative-AI application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
