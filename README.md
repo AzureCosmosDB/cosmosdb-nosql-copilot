@@ -1,6 +1,6 @@
-# Hands-On-Lab to Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
+# Hands-On-Lab to Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
-This Hands-On-Lab and starter solution walks users step-by-step how to build a Generative-AI application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This Hands-On-Lab and starter solution walks users step-by-step on how to build a Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
 To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
 
@@ -42,7 +42,7 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
 1. Run the following command to download this project code:
 
     ```bash
-    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
+    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot -b start
     ```
 
 1. Open a terminal and navigate to the /infra directory in this solution.
