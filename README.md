@@ -1,19 +1,6 @@
----
-page_type: sample
-languages:
-- csharp
-products:
-- azure-cosmos-db
-- azure-openai
-name: Build a Copilot app using Azure Cosmos DB & Azure OpenAI Service
-urlFragment: chat-app
-description: Sample application that implements a Generative AI chat application that demonstrates context windows, semantic cache, RAG Pattern with custom data and Semantic Kernel integration.
-azureDeploy: https://raw.githubusercontent.com/AzureCosmosDB/cosmosdb-nosql-copilot/main/azuredeploy.json
----
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
-# Build a Copilot app using Azure Cosmos DB,Azure OpenAI Service and Azure App Service
-
-This sample application shows how to build a Generative-AI RAG Pattern application using Azure Cosmos DB using its new vector search capabilities and Azure OpenAI Service and Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This sample application shows how to build a Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
 ## Concepts Covered
 
