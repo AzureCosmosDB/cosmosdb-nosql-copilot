@@ -3,6 +3,7 @@ using Azure.Identity;
 using Cosmos.Copilot.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
+using Newtonsoft.Json;
 using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 
@@ -16,6 +17,7 @@ public class CosmosDbService
     private readonly Container _chatContainer;
     private readonly Container _cacheContainer;
     private readonly Container _productContainer;
+    private readonly string _productDataSource;
 
     /// <summary>
     /// Creates a new instance of the service.
@@ -29,13 +31,16 @@ public class CosmosDbService
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
     /// </remarks>
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName)
+    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSource)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productDataSource);
+
+        _productDataSource = productDataSource;
 
         CosmosSerializationOptions options = new()
         {
@@ -71,7 +76,7 @@ public class CosmosDbService
         Product? item = null;
         try 
         {
-            await _productContainer.ReadItemAsync<Product>("027D0B9A-F9D9-4C96-8213-C8546C4AAE71", new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+            item = await _productContainer.ReadItemAsync<Product>(id: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         { }
@@ -79,16 +84,26 @@ public class CosmosDbService
         if (item is null)
         {
             string json = "";
-            string jsonFilePath = @"https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/products.json";
+            string jsonFilePath = _productDataSource; //URI to the vectorized product JSON file
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(jsonFilePath);
             if(response.IsSuccessStatusCode)
                 json = await response.Content.ReadAsStringAsync();
 
-            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
+
+
+
             foreach (var product in products)
             {
-                await InsertProductAsync(product);
+                try
+                {
+                    await InsertProductAsync(product);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
+                }
             }
         }
     }

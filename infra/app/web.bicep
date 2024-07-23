@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param tags object = {}
 
 @description('SKU of the App Service Plan.')
-param sku string = 'S1'
+param sku string = 'P0v3'
 
 @description('Endpoint for Azure Cosmos DB for NoSQL account.')
 param databaseAccountEndpoint string
@@ -28,6 +28,7 @@ type cosmosDbOptions = {
   chatContainer: string
   cacheContainer: string
   productContainer: string
+  productDataSource: string
 }
 @description('Application configuration settings for Azure Cosmos DB.')
 param cosmosDbSettings cosmosDbOptions
@@ -95,6 +96,7 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       COSMOSDB__CHATCONTAINER: cosmosDbSettings.chatContainer
       COSMOSDB__CACHECONTAINER: cosmosDbSettings.cacheContainer
       COSMOSDB__PRODUCTCONTAINER: cosmosDbSettings.productContainer
+      COSMOSDB__PRODUCTDATASOURCE: cosmosDbSettings.productDataSource
       CHAT_MAXCONVERSATIONTOKENS: chatSettings.maxConversationTokens
       CHAT_CACHESIMILARITYSCORE: chatSettings.cacheSimilarityScore
       CHAT_PRODUCTMAXRESULTS: chatSettings.productMaxResults

@@ -11,4 +11,6 @@ public record CosmosDb
     public required string CacheContainer { get; init; }
 
     public required string ProductContainer { get; init; }
+
+    public required string ProductDataSource { get; init; }
 };
