@@ -1,5 +1,5 @@
 {
-  "cosmosDbAccount": "cosmos-db-nosql",
+  "cosmosDbAccount": "cosmos",
   "openAiAccount": "openai",
   "userAssignedIdentity": "ua-id",
   "appServiceWebApp": "web",

@@ -44,6 +44,8 @@ var chatSettings = {
   productMaxResults: '10'
 }
 
+var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536.json'
+
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: environmentName
   location: location
@@ -83,6 +85,7 @@ module web 'app/web.bicep' = {
       chatContainer: database.outputs.containers[0].name
       cacheContainer: database.outputs.containers[1].name
       productContainer: database.outputs.containers[2].name
+      productDataSource: productDataSource
     }
     openAiSettings: {
       completionDeploymentName: ai.outputs.deployments[0].name
