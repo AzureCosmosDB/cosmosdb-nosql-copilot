@@ -5,7 +5,7 @@ param location string = resourceGroup().location
 param tags object = {}
 
 var database = {
-  name: 'chatdatabase' // Database for chat application
+  name: 'cosmoscopilotdb' // Database for application
 }
 
 var containers = [
