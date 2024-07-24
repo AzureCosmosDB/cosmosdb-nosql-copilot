@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param tags object = {}
 
 @description('SKU of the App Service Plan.')
-param sku string = 'S1'
+param sku string = 'B1'
 
 @description('Endpoint for Azure Cosmos DB for NoSQL account.')
 param databaseAccountEndpoint string
