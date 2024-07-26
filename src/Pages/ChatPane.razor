@@ -31,12 +31,27 @@
             </div>
         </div>
     } 
-    <h6 class="px-4 display-6 text-secondary p-2">@GetChatSessionName()</h6>
-    <div class="d-flex justify-content-end">
-        <button type="button" class="btn btn-link btn-sm pb-2" @onclick="ClearCache">
-            Clear Cache
-        </button>
+
+    <div class="d-flex">
+        <div class="flex-grow-1">
+            <h6 class="px-4 display-6 text-secondary pt-1 pb-0">@GetChatSessionName()</h6>
+        </div>
+        <div class="pb-2 pt-4">
+            <select @onchange="UpdateSelectedUser">
+                @foreach (string user in ValidUsers)
+                {
+                    <option value="@Tenant.@user">@Tenant.@user</option>
+                }
+
+            </select>
+        </div>
+        <div class="px-4 pb-2 pt-2">
+            <button type="button" class="btn btn-link btn-sm pt-3" @onclick="ClearCache">
+                Clear Cache
+            </button>
+        </div>
     </div>
+
     <div class="px-4 pb-4 pt-2 flex-grow-1 overflow-y-auto overflow-x-hidden align-items-stretch" id="MessagesInChatdiv">
         @if (CurrentSession is null)
         {
@@ -151,8 +166,15 @@
 
 @code {
 
+    // Inject NavigationManager
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
     [Parameter]
     public EventCallback<Session> OnChatUpdated { get; set; }
+
+    [Parameter]
+    public EventCallback<UserParameters> OnUserChanged { get; set; }
 
     [Parameter]
     public Session? CurrentSession { get; set; }
@@ -167,8 +189,15 @@
 
     private string? UserPromptSet { get; set; }
 
+    private string? Tenant;
+    private string? User;
+
+    private List<string> ValidUsers = new List<string> { "Mark", "James", "Sandeep" };
+
     private List<Message>? _messagesInChat;
     private static event EventHandler<Session>? _onMessagePosted;
+
+
     private bool _loadingComplete;
 
     private MarkupString FixupText(string input)
@@ -184,13 +213,24 @@
                 else
                     // odd = end code block tag
                     text = rgx.Replace(text, "</pre></code>", 1, i);
-        
+
         MarkupString html = new MarkupString(text);
 
         return html;
     }
 
-	async private Task ToggleNavMenu()
+    private async Task UpdateSelectedUser(ChangeEventArgs e)
+    {
+        if (string.IsNullOrEmpty(Tenant))
+            return;
+
+        CurrentSession = null;
+        User = e.Value.ToString();
+        NavigationManager.NavigateTo($"?Tenant={Tenant}");
+        await OnUserChanged.InvokeAsync(new UserParameters (User, Tenant));
+    }
+
+    async private Task ToggleNavMenu()
     {
         await OnNavBarVisibilityUpdated.InvokeAsync();
     }
@@ -199,12 +239,28 @@
     {
         if (CurrentSession is not null)
         {
-            _messagesInChat = await chatService.GetChatSessionMessagesAsync(CurrentSession.SessionId);
+            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant,User,CurrentSession.SessionId);
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        // Read query string parameters using NavigationManager
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var queryString = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        // Get the value of the "myParameter" query string parameter
+        Tenant = queryString["Tenant"];
+
+        if (Tenant == null)
+        {
+            Tenant = "t1";
+            User = Tenant +"."+ ValidUsers[0];           
+            var changeEventArgs = new ChangeEventArgs { Value = User };
+            await UpdateSelectedUser(changeEventArgs);
+        }
+
+
         await chatService.InitializeAsync();
 
         _onMessagePosted += async (o, e) =>
@@ -218,6 +274,7 @@
                 }
             });
         };
+
     }
 
     protected override async Task OnParametersSetAsync()
@@ -229,7 +286,7 @@
 
         if (CurrentSession.SessionId != Interface.EMPTY_SESSION & CurrentSession.SessionId is not null)
         {
-            _messagesInChat = await chatService.GetChatSessionMessagesAsync(CurrentSession?.SessionId);
+            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant, User, CurrentSession?.SessionId);
         }
 
         _loadingComplete = true;
@@ -260,13 +317,13 @@
            UserPromptSet = String.Empty;
         }
 
-        var message = await chatService.GetChatCompletionAsync(CurrentSession?.SessionId, UserPrompt);
+        var message = await chatService.GetChatCompletionAsync(Tenant, User,CurrentSession?.SessionId, UserPrompt);
         CurrentSession!.Tokens += message.CompletionTokens + message.PromptTokens;
 
         if(_messagesInChat?.Count == 1)
         {
             string newSessionName;
-            newSessionName = await chatService.SummarizeChatSessionNameAsync(CurrentSession?.SessionId);
+            newSessionName = await chatService.SummarizeChatSessionNameAsync(Tenant, User, CurrentSession?.SessionId);
 
             if (CurrentSession is not null)
             {

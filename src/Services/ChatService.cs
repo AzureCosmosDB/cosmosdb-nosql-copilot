@@ -1,4 +1,5 @@
 ﻿using Cosmos.Copilot.Models;
+using Microsoft.Azure.Cosmos;
 using Microsoft.ML.Tokenizers;
 
 namespace Cosmos.Copilot.Services;
@@ -32,30 +33,32 @@ public class ChatService
     /// <summary>
     /// Returns list of chat session ids and names for left-hand nav to bind to (display Name and ChatSessionId as hidden)
     /// </summary>
-    public async Task<List<Session>> GetAllChatSessionsAsync()
+    public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDbService.GetSessionsAsync();
+        return await _cosmosDbService.GetSessionsAsync(tenantId,userId);
     }
 
     /// <summary>
     /// Returns the chat messages to display on the main web page when the user selects a chat from the left-hand nav
     /// </summary>
-    public async Task<List<Message>> GetChatSessionMessagesAsync(string? sessionId)
+    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId,string? sessionId)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDbService.GetSessionMessagesAsync(sessionId); ;
+        return await _cosmosDbService.GetSessionMessagesAsync(tenantId,userId, sessionId); ;
     }
 
     /// <summary>
     /// User creates a new Chat Session.
     /// </summary>
-    public async Task<Session> CreateNewChatSessionAsync()
+    public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
 
-        Session session = new();
+        Session session = new(tenantId, userId);
 
-        await _cosmosDbService.InsertSessionAsync(session);
+        await _cosmosDbService.InsertSessionAsync(tenantId,  userId,session);
 
         return session;
 
@@ -64,41 +67,46 @@ public class ChatService
     /// <summary>
     /// Rename the Chat Session from "New Chat" to the summary provided by OpenAI
     /// </summary>
-    public async Task RenameChatSessionAsync(string? sessionId, string newChatSessionName)
+    public async Task RenameChatSessionAsync(string tenantId, string userId,string? sessionId, string newChatSessionName)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        Session session = await _cosmosDbService.GetSessionAsync(sessionId);
+        Session session = await _cosmosDbService.GetSessionAsync(tenantId,  userId,sessionId);
 
         session.Name = newChatSessionName;
 
-        await _cosmosDbService.UpdateSessionAsync(session);
+        await _cosmosDbService.UpdateSessionAsync(tenantId, userId,session);
     }
 
     /// <summary>
     /// User deletes a chat session
     /// </summary>
-    public async Task DeleteChatSessionAsync(string? sessionId)
+    public async Task DeleteChatSessionAsync(string tenantId, string userId, string? sessionId)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        await _cosmosDbService.DeleteSessionAndMessagesAsync(sessionId);
+        await _cosmosDbService.DeleteSessionAndMessagesAsync( tenantId, userId, sessionId);
     }
 
     /// <summary>
     /// Get a completion for a user prompt from Azure OpenAi Service
     /// This is the main LLM Workflow for the Chat Service
     /// </summary>
-    public async Task<Message> GetChatCompletionAsync(string? sessionId, string promptText)
+    public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string promptText)
     {
-
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
         //Create a message object for the new User Prompt and calculate the tokens for the prompt
-        Message chatMessage = await CreateChatMessageAsync(sessionId, promptText);
+        Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
 
         //Grab context window from the conversation history up to the maximum configured tokens
-        List<Message> contextWindow = await GetChatSessionContextWindow(sessionId);
+        List<Message> contextWindow = await GetChatSessionContextWindow( tenantId,  userId, sessionId);
 
         //Perform a cache search to see if this prompt has already been used in the same context window as this conversation
         (string cachePrompts, float[] cacheVectors, string cacheResponse) = await GetCacheAsync(contextWindow);
@@ -111,7 +119,7 @@ public class ChatService
             chatMessage.CompletionTokens = 0;
 
             //Persist the prompt/completion, update the session tokens
-            await UpdateSessionAndMessage(sessionId, chatMessage);
+            await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
 
             return chatMessage;
         }
@@ -140,7 +148,7 @@ public class ChatService
 
 
         //Persist the prompt/completion, update the session tokens
-        await UpdateSessionAndMessage(sessionId, chatMessage);
+        await UpdateSessionAndMessage( tenantId, userId, sessionId, chatMessage);
 
         return chatMessage;
     }
@@ -148,12 +156,15 @@ public class ChatService
     /// <summary>
     /// Get the context window for this conversation. This is used in cache search as well as generating completions
     /// </summary>
-    private async Task<List<Message>> GetChatSessionContextWindow(string sessionId)
+    private async Task<List<Message>> GetChatSessionContextWindow(string tenantId, string userId, string sessionId)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(sessionId);
 
         int? tokensUsed = 0;
 
-        List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(sessionId);
+        List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(tenantId, userId, sessionId);
         List<Message> contextWindow = new List<Message>();
 
         //Start at the end of the list and work backwards
@@ -178,13 +189,14 @@ public class ChatService
     /// <summary>
     /// Use OpenAI to summarize the conversation to give it a relevant name on the web page
     /// </summary>
-    public async Task<string> SummarizeChatSessionNameAsync(string? sessionId)
+    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string? sessionId)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-
         //Get the messages for the session
-        List<Message> messages = await _cosmosDbService.GetSessionMessagesAsync(sessionId);
+        List<Message> messages = await _cosmosDbService.GetSessionMessagesAsync( tenantId,  userId, sessionId);
 
         //Create a conversation string from the messages
         string conversationText = string.Join(" ", messages.Select(m => m.Prompt + " " + m.Completion));
@@ -193,7 +205,7 @@ public class ChatService
         string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
         //string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
 
-        await RenameChatSessionAsync(sessionId, completionText);
+        await RenameChatSessionAsync( tenantId,  userId, sessionId, completionText);
 
         return completionText;
     }
@@ -201,16 +213,19 @@ public class ChatService
     /// <summary>
     /// Add user prompt to a new chat session message object, calculate token count for prompt text.
     /// </summary>
-    private async Task<Message> CreateChatMessageAsync(string sessionId, string promptText)
+    private async Task<Message> CreateChatMessageAsync(string tenantId, string userId, string sessionId, string promptText)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(sessionId);
 
         //Calculate tokens for the user prompt message.
         int promptTokens = GetTokens(promptText);
 
         //Create a new message object.
-        Message chatMessage = new(sessionId, promptTokens, promptText, "");
+        Message chatMessage = new(tenantId, userId, sessionId, promptTokens, promptText, "");
 
-        await _cosmosDbService.InsertMessageAsync(chatMessage);
+        await _cosmosDbService.InsertMessageAsync(tenantId, userId, chatMessage);
 
         return chatMessage;
     }
@@ -218,15 +233,18 @@ public class ChatService
     /// <summary>
     /// Update session with user prompt and completion tokens and update the cache
     /// </summary>
-    private async Task UpdateSessionAndMessage(string sessionId, Message chatMessage)
+    private async Task UpdateSessionAndMessage(string tenantId, string userId, string sessionId, Message chatMessage)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(sessionId);
 
         //Update the tokens used in the session
-        Session session = await _cosmosDbService.GetSessionAsync(sessionId);
+        Session session = await _cosmosDbService.GetSessionAsync(tenantId, userId, sessionId);
         session.Tokens += chatMessage.PromptTokens + chatMessage.CompletionTokens;
 
         //Insert new message and Update session in a transaction
-        await _cosmosDbService.UpsertSessionBatchAsync(session, chatMessage);
+        await _cosmosDbService.UpsertSessionBatchAsync( tenantId,  userId, session, chatMessage);
 
     }
 

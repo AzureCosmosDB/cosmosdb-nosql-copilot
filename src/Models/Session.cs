@@ -11,8 +11,17 @@ public record Session
 
     public string Type { get; set; }
 
+
     /// <summary>
-    /// Partition key
+    /// Partition key- L1
+    /// </summary>
+    public string TenantId { get; set; }
+    /// <summary>
+    /// Partition key- L2
+    /// </summary>
+    public string UserId { get; set; }
+    /// <summary>
+    /// Partition key- L3
     /// </summary>
     public string SessionId { get; set; }
 
@@ -23,11 +32,13 @@ public record Session
     [JsonIgnore]
     public List<Message> Messages { get; set; }
 
-    public Session()
+    public Session(string tenantId, string userId)
     {
         Id = Guid.NewGuid().ToString();
         Type = nameof(Session);
         SessionId = this.Id;
+        UserId = userId;
+        TenantId= tenantId; 
         Tokens = 0;
         Name = "New Chat";
         Messages = new List<Message>();

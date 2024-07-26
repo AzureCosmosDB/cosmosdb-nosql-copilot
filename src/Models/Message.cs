@@ -10,7 +10,15 @@ public record Message
     public string Type { get; set; }
 
     /// <summary>
-    /// Partition key
+    /// Partition key- L1
+    /// </summary>
+    public string TenantId { get; set; }
+    /// <summary>
+    /// Partition key- L2
+    /// </summary>
+    public string UserId { get; set; }
+    /// <summary>
+    /// Partition key- L3
     /// </summary>
     public string SessionId { get; set; }
 
@@ -23,10 +31,12 @@ public record Message
     public string Completion { get; set; }
 
     public int CompletionTokens { get; set; }
-    public Message(string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0)
+    public Message(string tenantId, string userId, string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0)
     {
         Id = Guid.NewGuid().ToString();
         Type = nameof(Message);
+        TenantId = tenantId;
+        UserId = userId;
         SessionId = sessionId;
         TimeStamp = DateTime.UtcNow;
         Prompt = prompt;
