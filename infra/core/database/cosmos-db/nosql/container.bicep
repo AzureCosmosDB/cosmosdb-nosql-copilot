@@ -62,6 +62,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         partitionKey: {
           paths: partitionKeyPaths
           kind: 'Hash'
+          version: 2
         }
       },
       !empty(indexingPolicy)
