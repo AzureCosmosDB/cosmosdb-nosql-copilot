@@ -12,12 +12,20 @@ var containers = [
   {
     name: 'chat' // Container for chat sessions and messages
     partitionKeyPaths: [
+      '/tenantId'
+      '/userId'
       '/sessionId' // Partition on the session identifier
     ]
     indexingPolicy: {
       automatic: true
       indexingMode: 'consistent'
       includedPaths: [
+        {
+          path: '/tenantId/?'
+        }
+        {
+          path: '/userId/?'
+        }
         {
           path: '/sessionId/?'
         }
