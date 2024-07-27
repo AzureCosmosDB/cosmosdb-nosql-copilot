@@ -12,5 +12,5 @@ public record CosmosDb
 
     public required string ProductContainer { get; init; }
 
-    public required string ProductDataSource { get; init; }
+    public required string ProductDataSourceURI { get; init; }
 };

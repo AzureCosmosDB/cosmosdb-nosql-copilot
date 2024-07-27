@@ -19,7 +19,7 @@ public class CosmosDbService
     private readonly Container _chatContainer;
     private readonly Container _cacheContainer;
     private readonly Container _productContainer;
-    private readonly string _productDataSource;
+    private readonly string _productDataSourceURI;
 
     /// <summary>
     /// Creates a new instance of the service.
@@ -33,16 +33,16 @@ public class CosmosDbService
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
     /// </remarks>
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSource)
+    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSourceURI)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
-        ArgumentNullException.ThrowIfNullOrEmpty(ProductDataSourceURL);
+        ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
 
-        _productDataSource = productDataSource;
+        _productDataSourceURI = productDataSourceURI;
 
         CosmosSerializationOptions options = new()
         {
@@ -86,7 +86,7 @@ public class CosmosDbService
         if (item is null)
         {
             string json = "";
-            string jsonFilePath = _productDataSource; //URI to the vectorized product JSON file
+            string jsonFilePath = _productDataSourceURI; //URI to the vectorized product JSON file
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(jsonFilePath);
             if(response.IsSuccessStatusCode)

@@ -252,14 +252,14 @@
         // Get the value of the "myParameter" query string parameter
         Tenant = queryString["Tenant"];
 
-        if (Tenant == null)
-        {
+        if (string.IsNullOrEmpty(Tenant))
             Tenant = "t1";
-            User = Tenant +"."+ DummyUsers[0];           
-            var changeEventArgs = new ChangeEventArgs { Value = User };
-            await UpdateSelectedUser(changeEventArgs);
-        }
 
+        if (string.IsNullOrEmpty(User))
+            User = Tenant + "." + DummyUsers[0];
+
+        var changeEventArgs = new ChangeEventArgs { Value = User };
+        await UpdateSelectedUser(changeEventArgs);
 
         await chatService.InitializeAsync();
 
