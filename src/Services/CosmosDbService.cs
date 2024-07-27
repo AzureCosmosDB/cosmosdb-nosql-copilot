@@ -40,7 +40,7 @@ public class CosmosDbService
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
-        ArgumentNullException.ThrowIfNullOrEmpty(productDataSource);
+        ArgumentNullException.ThrowIfNullOrEmpty(ProductDataSourceURL);
 
         _productDataSource = productDataSource;
 
