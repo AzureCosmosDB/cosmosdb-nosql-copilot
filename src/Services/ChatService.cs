@@ -1,5 +1,4 @@
 ﻿using Cosmos.Copilot.Models;
-using Microsoft.Azure.Cosmos;
 using Microsoft.ML.Tokenizers;
 
 namespace Cosmos.Copilot.Services;

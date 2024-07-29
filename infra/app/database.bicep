@@ -41,7 +41,7 @@ var containers = [
     }
   }
   {
-    name: 'cache' // Container for cahced messages
+    name: 'cache' // Container for cached messages
     partitionKeyPaths: [
       '/id' // Partition on cache identifier
     ]
