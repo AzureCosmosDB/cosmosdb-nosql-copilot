@@ -97,7 +97,7 @@ public class OpenAiService
 
         List<ChatMessage> messages = new List<ChatMessage>
         {
-            new SystemChatMessage(_summarizePrompt)
+            new SystemChatMessage(_systemPrompt)
         };
 
         foreach (Message message in contextWindow)
