@@ -7,7 +7,7 @@
         <NavMenu @ref="@NavMenu" OnChatClicked="LoadChatEventHandlerAsync" OnNavBarVisibilityUpdated="UpdateNavBarVisibility" />
     }
     <section class="flex-grow-1">
-        <ChatPane @ref="@ChatPane" CurrentSession="@CurrentSession" OnChatUpdated="ForceRefreshAsync" OnNavBarVisibilityUpdated="UpdateNavBarVisibility" ShowHeader="@IsNavMenuCollapsed" />
+        <ChatPane @ref="@ChatPane" CurrentSession="@CurrentSession" OnChatUpdated="ForceRefreshAsync" OnUserChanged="ForceReloadAsync" OnNavBarVisibilityUpdated="UpdateNavBarVisibility" ShowHeader="@IsNavMenuCollapsed" />
     </section>
 </main>
 
@@ -15,6 +15,9 @@
 
     [Parameter]
     public EventCallback<string> OnChatUpdated { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<UserParameters> OnUserChanged { get; set; } = default!;
 
     private Session? CurrentSession;
     private ChatPane? ChatPane = default;
@@ -51,5 +54,13 @@
         await InvokeAsync(StateHasChanged);
 
         NavMenu?.UpdateNavMenuDisplay("Rename by Open AI", session);
+    }
+
+    public async void ForceReloadAsync(UserParameters uparam)
+    {
+        // Inform blazor the NavMenu needs updating
+        await InvokeAsync(StateHasChanged);
+
+        NavMenu?.SetSelectedUser("User Changed", uparam.UserId, uparam.TenantId);
     }
 }

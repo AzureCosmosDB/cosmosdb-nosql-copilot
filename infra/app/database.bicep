@@ -12,12 +12,20 @@ var containers = [
   {
     name: 'chat' // Container for chat sessions and messages
     partitionKeyPaths: [
-      '/sessionId' // Partition on the session identifier
+      '/tenantId'  // Partition on the tenant identifier, l1 of HPK
+      '/userId'    // Partition on the user identifier, l2 of HPK
+      '/sessionId' // Partition on the session identifier, l3 of HPK
     ]
     indexingPolicy: {
       automatic: true
       indexingMode: 'consistent'
       includedPaths: [
+        {
+          path: '/tenantId/?'
+        }
+        {
+          path: '/userId/?'
+        }
         {
           path: '/sessionId/?'
         }
@@ -33,9 +41,9 @@ var containers = [
     }
   }
   {
-    name: 'cache' // Container for chat sessions and messages
+    name: 'cache' // Container for cached messages
     partitionKeyPaths: [
-      '/id' // Partition on the session identifier
+      '/id' // Partition on cache identifier
     ]
     indexingPolicy: {
       automatic: true
