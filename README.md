@@ -1,3 +1,22 @@
+---
+page_type: sample
+languages:
+- azdeveloper
+- bicep
+- aspx-csharp
+- csharp
+- dockerfile
+- nosql
+products:
+- azure
+- azure-cosmos-db
+- azure-app-service
+- azure-openai
+urlFragment: ai-samples
+name: Build Copilot app using Azure Cosmos DB for NoSQL
+description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+---
+
 # Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
 This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
@@ -42,6 +61,10 @@ This application demonstrates the following concepts and how to implement them:
     1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
     1. Read the description to confirm you want to enroll in the preview.
     1. Select "Enable" to enroll in the Vector Search preview.
+
+    #### Checking Azure OpenAI quota limits
+
+    For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
 ### Instructions
 
