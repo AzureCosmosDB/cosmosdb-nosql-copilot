@@ -60,7 +60,7 @@ static class ProgramExtensions
                     chatContainerName: cosmosDbOptions.Value?.ChatContainer ?? String.Empty,
                     cacheContainerName: cosmosDbOptions.Value?.CacheContainer ?? String.Empty,
                     productContainerName: cosmosDbOptions.Value?.ProductContainer ?? String.Empty,
-                    productDataSource: cosmosDbOptions.Value?.ProductDataSource ?? String.Empty
+                    productDataSourceURI: cosmosDbOptions.Value?.ProductDataSourceURI ?? String.Empty
                 );
             }
         });

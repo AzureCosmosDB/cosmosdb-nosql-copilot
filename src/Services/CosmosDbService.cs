@@ -3,9 +3,11 @@ using Azure.Identity;
 using Cosmos.Copilot.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using Newtonsoft.Json;
 using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 namespace Cosmos.Copilot.Services;
 
@@ -17,7 +19,7 @@ public class CosmosDbService
     private readonly Container _chatContainer;
     private readonly Container _cacheContainer;
     private readonly Container _productContainer;
-    private readonly string _productDataSource;
+    private readonly string _productDataSourceURI;
 
     /// <summary>
     /// Creates a new instance of the service.
@@ -31,16 +33,16 @@ public class CosmosDbService
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
     /// </remarks>
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSource)
+    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSourceURI)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
-        ArgumentNullException.ThrowIfNullOrEmpty(productDataSource);
+        ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
 
-        _productDataSource = productDataSource;
+        _productDataSourceURI = productDataSourceURI;
 
         CosmosSerializationOptions options = new()
         {
@@ -84,7 +86,7 @@ public class CosmosDbService
         if (item is null)
         {
             string json = "";
-            string jsonFilePath = _productDataSource; //URI to the vectorized product JSON file
+            string jsonFilePath = _productDataSourceURI; //URI to the vectorized product JSON file
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(jsonFilePath);
             if(response.IsSuccessStatusCode)
@@ -107,15 +109,55 @@ public class CosmosDbService
             }
         }
     }
+    /// <summary>
+    /// Helper function to generate a full or partial hierarchical partition key based on parameters.
+    /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
+    /// <param name="sessionId">Session Id of Chat/Session</param>
+    /// <returns>Newly created chat session item.</returns>
+    private static PartitionKey GetPK(string tenantId, string userId, string sessionId)
+    {
+        if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(sessionId))
+        {
+            PartitionKey partitionKey = new PartitionKeyBuilder()
+                .Add(tenantId)
+                .Add(userId)
+                .Add(sessionId)
+                .Build();
 
+            return partitionKey;
+        }
+        else if(!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(userId))
+        {
+
+            PartitionKey partitionKey = new PartitionKeyBuilder()
+                .Add(tenantId)
+                .Add(userId)
+                .Build();
+
+            return partitionKey;
+
+        }
+        else 
+        {
+            PartitionKey partitionKey = new PartitionKeyBuilder()
+            .Add(tenantId)
+            .Build();
+
+            return partitionKey;
+        }
+    }
     /// <summary>
     /// Creates a new chat session.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="session">Chat session item to create.</param>
     /// <returns>Newly created chat session item.</returns>
-    public async Task<Session> InsertSessionAsync(Session session)
+    public async Task<Session> InsertSessionAsync(string tenantId, string userId, Session session)
     {
-        PartitionKey partitionKey = new(session.SessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId,session.SessionId);
         return await _chatContainer.CreateItemAsync<Session>(
             item: session,
             partitionKey: partitionKey
@@ -125,11 +167,13 @@ public class CosmosDbService
     /// <summary>
     /// Creates a new chat message.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="message">Chat message item to create.</param>
     /// <returns>Newly created chat message item.</returns>
-    public async Task<Message> InsertMessageAsync(Message message)
+    public async Task<Message> InsertMessageAsync(string tenantId, string userId, Message message)
     {
-        PartitionKey partitionKey = new(message.SessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, message.SessionId);
         Message newMessage = message with { TimeStamp = DateTime.UtcNow };
         return await _chatContainer.CreateItemAsync<Message>(
             item: message,
@@ -140,13 +184,17 @@ public class CosmosDbService
     /// <summary>
     /// Gets a list of all current chat sessions.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <returns>List of distinct chat session items.</returns>
-    public async Task<List<Session>> GetSessionsAsync()
+    public async Task<List<Session>> GetSessionsAsync(string tenantId, string userId)
     {
+        PartitionKey partitionKey = GetPK(tenantId, userId, string.Empty);
+
         QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
             .WithParameter("@type", nameof(Session));
 
-        FeedIterator<Session> response = _chatContainer.GetItemQueryIterator<Session>(query);
+        FeedIterator<Session> response = _chatContainer.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
         List<Session> output = new();
         while (response.HasMoreResults)
@@ -160,15 +208,19 @@ public class CosmosDbService
     /// <summary>
     /// Gets a list of all current chat messages for a specified session identifier.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session identifier used to filter messsages.</param>
     /// <returns>List of chat message items for the specified session.</returns>
-    public async Task<List<Message>> GetSessionMessagesAsync(string sessionId)
+    public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
+        PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
+
         QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.sessionId = @sessionId AND c.type = @type")
             .WithParameter("@sessionId", sessionId)
-            .WithParameter("@type", nameof(Message));
+        .WithParameter("@type", nameof(Message));
 
-        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(query);
+        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
         List<Message> output = new();
         while (results.HasMoreResults)
@@ -182,11 +234,13 @@ public class CosmosDbService
     /// <summary>
     /// Updates an existing chat session.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="session">Chat session item to update.</param>
     /// <returns>Revised created chat session item.</returns>
-    public async Task<Session> UpdateSessionAsync(Session session)
+    public async Task<Session> UpdateSessionAsync(string tenantId, string userId, Session session)
     {
-        PartitionKey partitionKey = new(session.SessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, session.SessionId);
         return await _chatContainer.ReplaceItemAsync(
             item: session,
             id: session.Id,
@@ -197,11 +251,13 @@ public class CosmosDbService
     /// <summary>
     /// Returns an existing chat session.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session id for the session to return.</param>
     /// <returns>Chat session item.</returns>
-    public async Task<Session> GetSessionAsync(string sessionId)
+    public async Task<Session> GetSessionAsync(string tenantId, string userId, string sessionId)
     {
-        PartitionKey partitionKey = new(sessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
         return await _chatContainer.ReadItemAsync<Session>(
             partitionKey: partitionKey,
             id: sessionId
@@ -209,10 +265,12 @@ public class CosmosDbService
     }
 
     /// <summary>
-    /// Batch create chat message and update session.
+    /// Batch create chat message and update session.    
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="messages">Chat message and session items to create or replace.</param>
-    public async Task UpsertSessionBatchAsync(params dynamic[] messages)
+    public async Task UpsertSessionBatchAsync(string tenantId, string userId, params dynamic[] messages)
     {
 
         //Make sure items are all in the same partition
@@ -221,7 +279,7 @@ public class CosmosDbService
             throw new ArgumentException("All items must have the same partition key.");
         }
 
-        PartitionKey partitionKey = new(messages[0].SessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, messages[0].SessionId);
         TransactionalBatch batch = _chatContainer.CreateTransactionalBatch(partitionKey);
 
         foreach (var message in messages)
@@ -235,10 +293,13 @@ public class CosmosDbService
     /// <summary>
     /// Batch deletes an existing chat session and all related messages.
     /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
-    public async Task DeleteSessionAndMessagesAsync(string sessionId)
+
+    public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
     {
-        PartitionKey partitionKey = new(sessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
         QueryDefinition query = new QueryDefinition("SELECT VALUE c.id FROM c WHERE c.sessionId = @sessionId")
                 .WithParameter("@sessionId", sessionId);
