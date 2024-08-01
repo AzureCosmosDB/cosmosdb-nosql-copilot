@@ -46,7 +46,7 @@ This application demonstrates the following concepts and how to implement them:
 ### Prerequisites
 
 - Azure subscription. [Start free](https://azure.microsoft.com/free)
-- Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply)
+- Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
 - Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
