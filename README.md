@@ -22,11 +22,12 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
 ### Prerequisites
 
 - Azure subscription. [Start free](https://azure.microsoft.com/free)
+- Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
+- Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
-- Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
-- Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature)
+
 
     #### Vector search Preview details
     This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
@@ -37,6 +38,9 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
     1. Read the description to confirm you want to enroll in the preview.
     1. Select "Enable" to enroll in the Vector Search preview.
 
+    #### Checking Azure OpenAI quota limits
+
+    For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 ### Instructions
 
 1. Run the following command to download this project code:
