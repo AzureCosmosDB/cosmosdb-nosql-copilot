@@ -17,7 +17,7 @@ param enableNoSQLVectorSearch bool = false
 @description('Disables key-based authentication. Defaults to false.')
 param disableKeyBasedAuth bool = false
 
-resource account 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+resource account 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: name
   location: location
   tags: tags

@@ -27,11 +27,11 @@ var options = setThroughput
         }
   : {}
 
-resource account 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
+resource account 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
   name: parentAccountName
 }
 
-resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
   name: name
   parent: account
   tags: tags
