@@ -1,8 +1,8 @@
 # Hands-On-Lab to Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
-This Hands-On-Lab and starter solution walks users step-by-step on how to build a Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This Hands-On-Lab and starter solution walks users step-by-step on how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. This Hands On Lab walks you step-by-step through many of the concepts you will need to design and build these types of applications as well as practical guidance on how to implement them yourself.
 
-To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
+To run this Hands-On-Lab, follow the instructions below, then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
 
 ![Cosmos DB + ChatGPT user interface](screenshot.png)
 
@@ -10,12 +10,13 @@ To run the Hands-On-Lab, follow the steps below then open the [Lab Guide](./lab/
 
 This Hands-On-Lab demonstrates the following concepts and how to implement them:
 
-- The basics of building a highly scalable Generative-AI chat application using Azure Cosmos DB for NoSQL.
+- How to build a highly scalable, multi-tenant & user, Generative-AI chat application using Azure Cosmos DB for NoSQL.
 - Generating completions and embeddings using Azure OpenAI Service.
 - Managing a context window (chat history) for natural conversational interactions with an LLM.
 - Manage token consumption and payload sizes for Azure OpenAI Service requests.
 - Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
 - Using the Semantic Kernel SDK for completion and embeddings generation.
+- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM.
 
 ## Getting Started
 
@@ -43,7 +44,9 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
     For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 ### Instructions
 
-1. Run the following command to download this project code:
+1. Open a terminal and navigate to where you would like to clone this repository.
+
+1. Run the following command to download this Hands-On-Lab:
 
     ```bash
     azd init -t AzureCosmosDB/cosmosdb-nosql-copilot -b start
@@ -65,16 +68,23 @@ This Hands-On-Lab demonstrates the following concepts and how to implement them:
 
 ### Hands-On-Lab
 
-To run the Hands-On-Lab, follow the Instructions above to download and deploy via AZD then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
+To run the Hands-On-Lab, follow the instructions above to download and deploy via AZD then open the [Lab Guide](./lab/lab-guide.md) and complete the exercises.
 
 
 ## Clean up
 
-To remove all the resources used by this sample, delete the resource group for your deployment.
+1. Open a terminal and navigate to the /infra directory in this solution.
+
+1. Type azd down
+
+    ```bash
+    azd down
+    ```
+
 
 ## Resources
 
-To learn more about the services and features demonstrated in this sample, see the following:
+To learn more about the services and features demonstrated in this Hands-On-Lab, see the following:
 
 - [Azure Cosmos DB for NoSQL Vector Search announcement](https://aka.ms/CosmosDBDiskANNBlog/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
