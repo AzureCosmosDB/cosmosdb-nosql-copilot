@@ -113,6 +113,7 @@ public class ChatService
         //Cache hit, return the cached completion
         if (!string.IsNullOrEmpty(cacheResponse))
         {
+            chatMessage.CacheHit = true;
             chatMessage.Completion = cacheResponse;
             chatMessage.Completion += " (cached response)";
             chatMessage.CompletionTokens = 0;
