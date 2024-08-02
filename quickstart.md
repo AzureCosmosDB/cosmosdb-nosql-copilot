@@ -30,7 +30,21 @@ In a pattern called Retrieval Augmented Generation or *RAG Pattern*, data from a
 
 Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**. 
 
-Traditional caches are key-value pairs and use an equality match on the key to *get* data. Keys for a semantic cache are vectors (or embeddings) which represent words in a high dimensional space where words with similar meaning or intent are in close proximity to each other dimensionally. 
+Traditional caches are key-value pairs and use an equality match on the key to *get* data. Keys for a semantic cache are vectors (or embeddings) which represent words in a high dimensional space where words with similar meaning or intent are in close proximity to each other dimensionally.
+
+## Semantic Cache and Context
+
+Most semantic cache implementions and samples show *single-turn* caching, meaning that individual prompts (and their vectors) plus the completions are cached. This may be fine in simple scenarios but this misses an important aspect of completion generation which is providing adequate context for an LLM to generate a completion. 
+
+Here is a simple mental exercise to illustrate this point. If I'm using a semantic cache that only caches single prompts and completions this is can occur.
+
+First let's start with a completely clean cache. A new user starts a session and asks the question, "What is the largest lake in North America?". The LLM will correctly respond with, "Lake Superior" with some additional facts about its size. Then the (vectorized) prompt and completion get stored in the cache. Next the user asks this follow up question, "What is the second largest?" Since this question hasn't been asked before it goes to the LLM to generate the completion and returns, "Lake Huron". Then this second prompt and completion get saved to the cache.
+
+Later a second user asks this question. "What is the largest stadium North America?". Since this is uncached, the LLM generates as reponse, "Michigan Stadium which seats 107,601 people." This gets stored in the cache. Next the user asks, "What is the second largest?". Since this question was asked by the previous user it returns the cached response, "Lake Huron", which of course is incorrect.
+
+So you can see the problem. In LLM applications, context matters. The cache may be fast, but a cache, particularly a *semantic cache* should return accurate responses.
+
+The solution is to *cache the context window* for the conversation taking place. In this way, any user that goes down the same path of questions, will get contextually correct responses. The specific way to do this is to vectorized the context window of prompts along with the latest completion. When the vectorized user prompt is sent to the cache, the vector query compares the vectors and returns the best result above the similarity score filter. The downside to doing this is it can result in a larger cache. But when weighing this against a cache that returns incorrect responses, it is a trade-off worth making. Plus like any cache, you can apply TTL to it to keep it from growing too large.
 
 ## Vector Query & Similarity Score
 
