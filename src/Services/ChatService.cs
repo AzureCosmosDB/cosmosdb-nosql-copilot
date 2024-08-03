@@ -115,7 +115,6 @@ public class ChatService
         {
             chatMessage.CacheHit = true;
             chatMessage.Completion = cacheResponse;
-            chatMessage.Completion += " (cached response)";
             chatMessage.CompletionTokens = 0;
 
             //Persist the prompt/completion, update the session tokens
