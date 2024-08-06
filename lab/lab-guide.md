@@ -11,7 +11,7 @@ This lab guides you through the steps to implement Generative AI capabilities fo
 1. Implement and test a chat history feature to allow for more natural conversational interactions. 
 1. Implement and test a semantic cache for improved performance.
 1. Connect to and implement Semantic Kernel SDK as a starting point for building more elaborate Generative AI solutions.
-1. Implement RAG Pattern using custom data for augmented LLM reponses.
+1. Implement RAG Pattern using custom data for augmented LLM responses.
 
 
 # Prepare
@@ -219,7 +219,7 @@ Humans interact with each other through conversations that have some *context* o
     dotnet run
     ```
 
-1. In the web application, create a new chat session and ask the AI assistant the same question again, `What is the largest lake in North America?`. And wait for the response, "Lake Superior" with some additional information. 
+1. In the web application, create a new chat session and ask the AI assistant the same question again, `What is the largest lake in North America?`. And wait for the response, "Lake Superior" with some additional information.
 
 1. Ask this follow up question. `What is the second largest?`. The response generated should look like the one below and will either have nothing to do with your first question, or the LLM may respond it doesn't understand your question.
 
@@ -244,10 +244,10 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
 1. Within the **ChatService.cs** class locate the **GetChatSessionContextWindow()** method. The **allMessages** variable in this function will fetch the entire chat history for a session. The **contextWindow** is what we will use to construct a subset of those messages to send to the LLM to provide context.
 
     ```csharp
-        private async Task<List<Message>> GetChatSessionContextWindow(string sessionId)
-        {
-           List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(sessionId);
-           List<Message> contextWindow = new List<Message>();
+        private async Task<List<Message>> GetChatSessionContextWindow(string tenantId, string userId, string sessionId)
+        {   
+            List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            List<Message> contextWindow = new List<Message>();
         }
     ```
 
@@ -276,13 +276,13 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
 1. Next, within the **ChatService.cs** class, locate **GetChatCompletionAsync()**. Find the three lines below and comment them  out. Then add the two lines as seen below.
 
     ```csharp
-    Message chatMessage = await CreateChatMessageAsync(sessionId, promptText);
+    Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
 
     //List<Message> messages = new List<Message>();
     //messages.Add(chatMessage);
     //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, messages);
 
-    List<Message> contexWindow = await GetChatSessionContextWindow(sessionId);
+    List<Message> contextWindow = await GetChatSessionContextWindow( tenantId,  userId, sessionId);
     (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
     ```
 
@@ -315,13 +315,20 @@ You are now ready to test your context window implementation.
 Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file to make sure that your code matches this sample.
  
     ```csharp
-    public async Task<Message> GetChatCompletionAsync(string? sessionId, string promptText)
+    public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string promptText)
     {
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
-        Message chatMessage = await CreateChatMessageAsync(sessionId, promptText);
-        List<Message> contextWindow = await GetChatSessionContextWindow(sessionId);
+
+       //Create a message object for the new User Prompt and calculate the tokens for the prompt
+        Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
+
+        //Grab context window from the conversation history up to the maximum configured tokens
+        List<Message> contextWindow = await GetChatSessionContextWindow( tenantId,  userId, sessionId);
+
         (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
-        await UpdateSessionAndMessage(sessionId, chatMessage);
+        await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
         return chatMessage;
     }
     ```
@@ -333,7 +340,7 @@ Large language models are amazing with their ability to generate completions to 
 
 In a pattern called Retrieval Augmented Generation or *RAG Pattern* (which we will show you in the last module of this lab), data from a database is used to augment or *ground* the LLM by providing additional information to generate a response. These payloads can get rather large. It is not uncommon to consume thousands of tokens and wait for 3-4 seconds for a response for large payloads. In a world where milliseconds counts, waiting for 3-4 seconds is often an unacceptable user experience.
 
-Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**. 
+Thankfully we can create a cache for this type of solution to reduce both cost and latency. In this exercise, we will introduce a specialized cache called a **semantic cache**.
 
 Traditional caches are key-value pairs and use an equality match on the key to *get* data. Keys for a semantic cache are vectors (or embeddings) which represent words in a high dimensional space where words with similar meaning or intent are in close proximity to each other dimensionally. 
 
@@ -351,11 +358,11 @@ Let's build our semantic cache.
     private async Task<(string cachePrompts, float[] cacheVectors, string cacheResponse)> CacheGetAsync(List<Message> contextWindow)
     ```
 
-1. To build our cache we need to do four things. 
-    1. Create a string from an array of text. 
-    1. Generate vectors on that text using Azure OpenAI Service. 
+1. To build our cache we need to do four things.
+    1. Create a string from an array of text.
+    1. Generate vectors on that text using Azure OpenAI Service.
     1. Execute the vector search using Azure Cosmos DB for NoSQL.
-    1. Return the values. 
+    1. Return the values.
 
 1. In the **GetCacheAsync()** function find the four lines below and comment them out.
 
@@ -430,7 +437,7 @@ Let's build our semantic cache.
 
 1. Click Save on the file to save the new query text.
 
-1. Next, return to the **ChatService.cs** and modify the **GetChatCompletionAsync()** function to execute a search on our semantic cache to find if a user prompt with similar intent has already been asked by another user. This method returns 3 things,  cachePrompt, cacheVectors and cacheResponse. 
+1. Next, return to the **ChatService.cs** and modify the **GetChatCompletionAsync()** function to execute a search on our semantic cache to find if a user prompt with similar intent has already been asked by another user. This method returns 3 things,  cachePrompt, cacheVectors and cacheResponse.
 
 1. First, comment out the below line in the **ChatService.cs** inside the **GetChatCompletionAsync()**
 
@@ -454,7 +461,7 @@ Let's build our semantic cache.
         (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
         await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
     }
-    await UpdateSessionAndMessage(sessionId, chatMessage);
+    await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
     return chatMessage;
     ```
     
@@ -492,7 +499,7 @@ Review the **GetChatCompletionAsync()** method of the **ChatService.cs** code fi
             (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
             await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
         }
-        await UpdateSessionAndMessage(sessionId, chatMessage);
+        await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
         return chatMessage;
     }
     ```
@@ -511,7 +518,7 @@ At this point, we've implemented our semantic cache and are ready to test.
 
 1. In the web application, create a new chat session and ask the AI assistant this question, `What is the largest lake in North America?`. The AI assistant now responds with a completion created by the model saying that `Lake Superior` is the largest lake, with some additional information. Next, ask the next follow up question as `What is the second largest?`. You should see the response as the 'Lake Huron'. Next ask one more question, `What is the third largest?`. You should see the response as `Great Bear` Lake with some additional information.
 
-1. Next validate the Semantic cache is working. You should see a much faster response time with zero tokens consumed. Also cached responses will include, *(cached response)* appended in the response like this below. 
+1. Next validate the Semantic cache is working. You should see a much faster response time with zero tokens consumed. Also cached responses will include, *(cached response)* appended in the response like this below.
 
 
 ![semantic-cache.png](images/semantic-cache.png)
@@ -555,7 +562,7 @@ It is for this reason a semantic cache must cache within a context window. The c
 
 In this lab, we're diving into the LLM orchestration SDK created by Microsft Research called, Semantic Kernel. Semantic Kernel is an open-source SDK that lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can connect it to various vector databases using built-in connectors. By combining your existing C#, Python, and Java code with these models, you can build agents that answer questions and automate processes.
 
-1. Within the project, find the file **Services/SemanticKernelService.cs**. At the top of the file, locate the string variables named **_systemPrompt** and **_summarizePrompt**. Below that we will initialize a new Semantic Kernel instance within the **SemanticKernelService()** constructor. 
+1. Within the project, find the file **Services/SemanticKernelService.cs**. At the top of the file, locate the string variables named **_systemPrompt** and **_summarizePrompt**. Below that we will initialize a new Semantic Kernel instance within the **SemanticKernelService()** constructor.
 
 1. Locate the call to **Kernel.CreateBuilder()** in the constructor and comment it out. Then replace it with by adding the new builder as seen below.
 
@@ -790,11 +797,14 @@ If the cache does not work as expected, review the **GetCacheAsync()** method of
 If the completion does not work as expected, review the **GetChatCompletionAsync()** method of the **ChatService.cs** code file to make sure that your code matches this sample.
  
     ```csharp
-    public async Task<Message> GetChatCompletionAsync(string? sessionId, string promptText)
+    public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string promptText)
     {
-      ArgumentNullException.ThrowIfNull(sessionId);
-      Message chatMessage = await CreateChatMessageAsync(sessionId, promptText);
-      List<Message> contextWindow = await GetChatSessionContextWindow(sessionId);
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(sessionId);
+
+      Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
+      List<Message> contextWindow = await GetChatSessionContextWindow( tenantId,  userId, sessionId);
       (string cachePrompts, float[] cacheVectors, string cacheResponse) = await CacheGetAsync(contextWindow);
       if (!string.IsNullOrEmpty(cacheResponse))
       {
@@ -807,7 +817,7 @@ If the completion does not work as expected, review the **GetChatCompletionAsync
         (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId,contextWindow);
         await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
        }
-       wait UpdateSessionAndMessage(sessionId, chatMessage);
+        await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
        return chatMessage;
     }
     ```
@@ -815,10 +825,15 @@ If the completion does not work as expected, review the **GetChatCompletionAsync
 If the session name summarization does not work as expected, review the **SummarizeChatSessionNameAsync()** method of the **ChatService.cs** code file to make sure that your code matches this sample.
  
     ```csharp
-    public async Task<Message> SummarizeChatSessionNameAsync(string? sessionId)
+    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string? sessionId)
     {
-      ArgumentNullException.ThrowIfNull(sessionId);
-      List<Message> messages = await _cosmosDbService.GetSessionMessagesAsync(sessionId);
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(sessionId);
+
+        //Get the messages for the session
+        List<Message> messages = await _cosmosDbService.GetSessionMessagesAsync( tenantId,  userId, sessionId);
+
       string conversationText = string.Join(" ", messages.Select(m => m.Prompt + " " + m.Completion));
       string completionText = await _semanticKernelService.SummarizeAsync(sessionId, conversationText);
       await RenameChatSessionAsync(sessionId, completionText);
