@@ -8,12 +8,12 @@ param environmentName string
 @minLength(1)
 @allowed([
   'australiaeast'
-  'westeurope'
-  'japaneast'
-  'uksouth'
   'eastus'
-  'southcentralus'
   'eastus2'
+  'japaneast'
+  'southcentralus'
+  'uksouth'
+  'westeurope'
 ])
 @description('Primary location for all resources.')
 param location string
@@ -43,6 +43,8 @@ var chatSettings = {
   cacheSimilarityScore: '0.99'
   productMaxResults: '10'
 }
+
+var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536.json'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: environmentName
@@ -83,6 +85,7 @@ module web 'app/web.bicep' = {
       chatContainer: database.outputs.containers[0].name
       cacheContainer: database.outputs.containers[1].name
       productContainer: database.outputs.containers[2].name
+      productDataSource: productDataSource
     }
     openAiSettings: {
       completionDeploymentName: ai.outputs.deployments[0].name
@@ -129,6 +132,7 @@ output AZURE_COSMOS_DB_DATABASE_NAME string = database.outputs.database.name
 output AZURE_COSMOS_DB_CHAT_CONTAINER_NAME string = database.outputs.containers[0].name
 output AZURE_COSMOS_DB_CACHE_CONTAINER_NAME string = database.outputs.containers[1].name
 output AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME string = database.outputs.containers[2].name
+output AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE string = productDataSource
 
 // AI outputs
 output AZURE_OPENAI_ACCOUNT_ENDPOINT string = ai.outputs.endpoint
