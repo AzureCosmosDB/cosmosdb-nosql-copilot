@@ -9,6 +9,17 @@ services:
     language: csharp
     host: appservice
 hooks:
+  preprovision:
+    windows:
+        shell: pwsh
+        continueOnError: false
+        interactive: true
+        run: ./infra/azd-hooks/preprovision.ps1
+    posix:
+        shell: sh
+        continueOnError: false
+        interactive: true
+        run: ./infra/azd-hooks/preprovision.sh
   postprovision:
     windows:
       run: |
