@@ -124,14 +124,21 @@ public class ChatService
         }
         else  //Cache miss, send to OpenAI to generate a completion
         {
-            //Generate embeddings for the user prompt
-            float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
-            //float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+            // Non-RAG pattern completions
+            // Generate a completion and get tokens used with current context window 
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
 
-            //These functions are for doing RAG Pattern completions
-            List <Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
-            (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
-            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            // RAG Pattern embeddings generation
+            // Generate embeddings for the user prompt
+            //float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
+            float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+            List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
+
+            // RAG Pattern completions
+            //Generate a completion and tokens used from current context window and vector search results
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
 
             //Cache the prompts in the current context window and their vectors with the generated completion
             await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
