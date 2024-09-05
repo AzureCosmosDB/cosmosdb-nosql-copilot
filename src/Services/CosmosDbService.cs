@@ -1,9 +1,11 @@
 ﻿using Azure.Core;
 using Azure.Identity;
 using Cosmos.Copilot.Models;
+using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
@@ -33,9 +35,14 @@ public class CosmosDbService
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
     /// </remarks>
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSourceURI)
+    public CosmosDbService(CosmosClient client, IOptions<CosmosDb> cosmosOptions)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
+        var databaseName = cosmosOptions.Value.Database;
+        var chatContainerName = cosmosOptions.Value.ChatContainer;
+        var cacheContainerName = cosmosOptions.Value.CacheContainer;
+        var productContainerName = cosmosOptions.Value.ProductContainer;
+        var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
+
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
@@ -49,10 +56,10 @@ public class CosmosDbService
             PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
         };
 
-        TokenCredential credential = new DefaultAzureCredential();
-        CosmosClient client = new CosmosClientBuilder(endpoint, credential)
-            .WithSerializerOptions(options)
-            .Build();
+        //TokenCredential credential = new DefaultAzureCredential();
+        //CosmosClient client = new CosmosClientBuilder(endpoint, credential)
+        //    .WithSerializerOptions(options)
+        //    .Build();
 
 
         Database database = client.GetDatabase(databaseName)!;

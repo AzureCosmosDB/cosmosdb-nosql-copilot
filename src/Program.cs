@@ -4,9 +4,17 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add service defaults & Aspire components.
+builder.AddServiceDefaults();
+
 builder.RegisterConfiguration();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+builder.AddAzureCosmosClient(
+    "cosmos",
+    configureClientOptions:
+        clientOptions => clientOptions.ApplicationName = "cosmos-copilot");
 builder.Services.RegisterServices();
 
 var app = builder.Build();
@@ -45,25 +53,7 @@ static class ProgramExtensions
 
     public static void RegisterServices(this IServiceCollection services)
     {
-        services.AddSingleton<CosmosDbService, CosmosDbService>((provider) =>
-        {
-            var cosmosDbOptions = provider.GetRequiredService<IOptions<CosmosDb>>();
-            if (cosmosDbOptions is null)
-            {
-                throw new ArgumentException($"{nameof(IOptions<CosmosDb>)} was not resolved through dependency injection.");
-            }
-            else
-            {
-                return new CosmosDbService(
-                    endpoint: cosmosDbOptions.Value?.Endpoint ?? String.Empty,
-                    databaseName: cosmosDbOptions.Value?.Database ?? String.Empty,
-                    chatContainerName: cosmosDbOptions.Value?.ChatContainer ?? String.Empty,
-                    cacheContainerName: cosmosDbOptions.Value?.CacheContainer ?? String.Empty,
-                    productContainerName: cosmosDbOptions.Value?.ProductContainer ?? String.Empty,
-                    productDataSourceURI: cosmosDbOptions.Value?.ProductDataSourceURI ?? String.Empty
-                );
-            }
-        });
+        services.AddSingleton<CosmosDbService, CosmosDbService>();
         services.AddSingleton<OpenAiService, OpenAiService>((provider) =>
         {
             var openAiOptions = provider.GetRequiredService<IOptions<OpenAi>>();

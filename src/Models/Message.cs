@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Cosmos.Copilot.Models;
 
 public record Message
@@ -5,6 +7,7 @@ public record Message
     /// <summary>
     /// Unique identifier
     /// </summary>
+    [JsonProperty("id")]
     public string Id { get; set; }
 
     public string Type { get; set; }
