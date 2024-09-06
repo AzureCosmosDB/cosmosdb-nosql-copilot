@@ -33,7 +33,8 @@ public record Message
     public string Completion { get; set; }
 
     public int CompletionTokens { get; set; }
-    public Message(string tenantId, string userId, string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0)
+    public bool CacheHit {get; set;}
+    public Message(string tenantId, string userId, string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0, bool cacheHit = false)
     {
         Id = Guid.NewGuid().ToString();
         Type = nameof(Message);
@@ -45,5 +46,6 @@ public record Message
         PromptTokens = promptTokens;
         Completion = completion;
         CompletionTokens = completionTokens;
+        CacheHit = cacheHit;
     }
 }
