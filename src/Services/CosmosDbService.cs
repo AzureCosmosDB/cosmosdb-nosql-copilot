@@ -1,13 +1,8 @@
-﻿using Azure.Core;
-using Azure.Identity;
-using Cosmos.Copilot.Models;
+﻿using Cosmos.Copilot.Models;
 using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -26,11 +21,8 @@ public class CosmosDbService
     /// <summary>
     /// Creates a new instance of the service.
     /// </summary>
-    /// <param name="endpoint">Endpoint URI.</param>
-    /// <param name="databaseName">Name of the database to access.</param>
-    /// <param name="chatContainerName">Name of the chat container to access.</param>
-    /// <param name="cacheContainerName">Name of the cache container to access.</param>
-    /// <param name="productContainerName">Name of the product container to access.</param>
+    /// <param name="client">CosmosClient injected via DI.</param>
+    /// <param name="cosmosOptions">Options.</param>
     /// <exception cref="ArgumentNullException">Thrown when endpoint, key, databaseName, cacheContainername or chatContainerName is either null or empty.</exception>
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
@@ -50,17 +42,6 @@ public class CosmosDbService
         ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
 
         _productDataSourceURI = productDataSourceURI;
-
-        CosmosSerializationOptions options = new()
-        {
-            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-        };
-
-        //TokenCredential credential = new DefaultAzureCredential();
-        //CosmosClient client = new CosmosClientBuilder(endpoint, credential)
-        //    .WithSerializerOptions(options)
-        //    .Build();
-
 
         Database database = client.GetDatabase(databaseName)!;
         Container chatContainer = database.GetContainer(chatContainerName)!;
