@@ -4,6 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # User-specific files
+/src/appsettings.Development.json
+
 *.rsuser
 *.suo
 *.user
@@ -396,4 +398,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-/src/appsettings.Development.json
+
