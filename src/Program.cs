@@ -1,5 +1,7 @@
+using Azure.Identity;
 using Cosmos.Copilot.Options;
 using Cosmos.Copilot.Services;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,8 +15,18 @@ builder.Services.AddServerSideBlazor();
 
 builder.AddAzureCosmosClient(
     "cosmos",
-    configureClientOptions:
-        clientOptions => clientOptions.ApplicationName = "cosmos-copilot");
+    settings =>
+    {
+        settings.DisableTracing = true;
+        settings.Credential = new DefaultAzureCredential();
+    },
+    clientOptions => {
+        clientOptions.ApplicationName = "cosmos-copilot";
+        clientOptions.SerializerOptions = new()
+        {
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        };
+    });
 builder.Services.RegisterServices();
 
 var app = builder.Build();
