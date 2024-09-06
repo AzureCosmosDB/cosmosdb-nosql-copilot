@@ -13,6 +13,7 @@ builder.RegisterConfiguration();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
+// Configure Azure Cosmos DB Aspire integration
 builder.AddAzureCosmosClient(
     "cosmos",
     settings =>
@@ -27,6 +28,20 @@ builder.AddAzureCosmosClient(
             PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
         };
     });
+
+// Configure OpenAI Aspire integration
+var endpoint = builder.Configuration.GetSection(nameof(OpenAi)).GetValue<string>("Endpoint");
+if (endpoint is null)
+{
+    throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
+}
+builder.AddAzureOpenAIClient("openAiConnectionName",
+    configureSettings: settings =>
+    {
+        settings.Endpoint = new Uri(endpoint);
+        settings.Credential = new DefaultAzureCredential();
+    });
+
 builder.Services.RegisterServices();
 
 var app = builder.Build();
@@ -66,22 +81,7 @@ static class ProgramExtensions
     public static void RegisterServices(this IServiceCollection services)
     {
         services.AddSingleton<CosmosDbService, CosmosDbService>();
-        services.AddSingleton<OpenAiService, OpenAiService>((provider) =>
-        {
-            var openAiOptions = provider.GetRequiredService<IOptions<OpenAi>>();
-            if (openAiOptions is null)
-            {
-                throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
-            }
-            else
-            {
-                return new OpenAiService(
-                    endpoint: openAiOptions.Value?.Endpoint ?? String.Empty,
-                    completionDeploymentName: openAiOptions.Value?.CompletionDeploymentName ?? String.Empty,
-                    embeddingDeploymentName: openAiOptions.Value?.EmbeddingDeploymentName ?? String.Empty
-                );
-            }
-        });
+        services.AddSingleton<OpenAiService, OpenAiService>();
         services.AddSingleton<SemanticKernelService, SemanticKernelService>((provider) =>
         {
             var semanticKernalOptions = provider.GetRequiredService<IOptions<SemanticKernel>>();
