@@ -127,7 +127,6 @@ public class ChatService
             //Generate embeddings for the user prompt
             float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
 
-            //These functions are just for simple completions without RAG Pattern
             //Generate a completion and tokens used with current context window (just user prompts, no vector search results, non RAG Pattern)
             //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
             //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
