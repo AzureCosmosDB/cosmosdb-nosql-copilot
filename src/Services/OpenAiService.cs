@@ -17,6 +17,8 @@ public class OpenAiService
     private readonly string _completionDeploymentName = String.Empty;
     private readonly string _embeddingDeploymentName = String.Empty;
     private readonly OpenAIClient _client;
+    private readonly EmbeddingClient _embeddingClient;
+    private readonly ChatClient _chatClient;
 
     /// <summary>
     /// System prompt to send with user prompts to instruct the model for chat session
@@ -69,6 +71,8 @@ public class OpenAiService
         _embeddingDeploymentName = embeddingDeploymentName;
 
         _client = client;
+        _embeddingClient = _client.GetEmbeddingClient(_embeddingDeploymentName);
+        _chatClient = _client.GetChatClient(_completionDeploymentName);
     }
 
     /// <summary>
@@ -79,32 +83,34 @@ public class OpenAiService
     /// <returns>Generated response along with tokens used to generate it.</returns>
     public async Task<(string completion, int tokens)> GetChatCompletionAsync(string sessionId, List<Message> conversation)
     {
-
-        //Serialize the conversation to a string to send to OpenAI
-        string conversationString = string.Join(Environment.NewLine, conversation.Select(m => m.Prompt + " " + m.Completion));
-
         ChatCompletionOptions options = new()
         {
             EndUserId = sessionId,
             MaxTokens = 1000,
             Temperature = 0.2f,
-            //NucleusSamplingFactor = 0.7f,
+            TopP = 0.7f,
             FrequencyPenalty = 0,
             PresencePenalty = 0
         };
 
-        var messages = new List<ChatMessage>()
+        List<ChatMessage> messages = new List<ChatMessage>()
         {
             new SystemChatMessage(_systemPrompt),
-            new UserChatMessage(conversationString)
         };
-        ClientResult<ChatCompletion> completionsResponse = await _client.GetChatClient(_completionDeploymentName).CompleteChatAsync(messages);
+        foreach (Message message in conversation)
+        {
+            messages.Add(new UserChatMessage(message.Prompt));
+            //Context Window always ends with the last prompt, add the completion if it exists
+            if (!string.IsNullOrEmpty(message.Completion))
+                messages.Add(new AssistantChatMessage(message.Completion));
+        }
+
+        ClientResult<ChatCompletion> completionsResponse = await _chatClient.CompleteChatAsync(messages, options);
 
         ChatCompletion completions = completionsResponse.Value;
 
         string completion = completions.Content[0].Text;
-        int tokens = completions.Usage.OutputTokens;
-
+        int tokens = completions.Usage.TotalTokens;
 
         return (completion, tokens);
     }
@@ -121,31 +127,34 @@ public class OpenAiService
         //Serialize List<Product> to a JSON string to send to OpenAI
         string productsString = JsonConvert.SerializeObject(products);
 
-        //Serialize the conversation to a string to send to OpenAI
-        string contextWindowString = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt + " " + m.Completion));
-
         ChatCompletionOptions options = new()
         {
             EndUserId = sessionId,
             MaxTokens = 1000,
             Temperature = 0.2f,
-            //NucleusSamplingFactor = 0.7f,
+            TopP = 0.7f,
             FrequencyPenalty = 0,
             PresencePenalty = 0
         };
 
-        var messages = new List<ChatMessage>()
+        List<ChatMessage> messages = new List<ChatMessage>()
         {
             new SystemChatMessage(_systemPromptRetailAssistant + productsString),
-            new UserChatMessage(contextWindowString)
         };
-        ClientResult<ChatCompletion> completionsResponse = await _client.GetChatClient(_completionDeploymentName).CompleteChatAsync(messages);
+        foreach (Message message in contextWindow)
+        {
+            messages.Add(new UserChatMessage(message.Prompt));
+            //Context Window always ends with the last prompt, only add the completion if it exists
+            if (!string.IsNullOrEmpty(message.Completion))
+                messages.Add(new AssistantChatMessage(message.Completion));
+        }
+
+        ClientResult<ChatCompletion> completionsResponse = await _chatClient.CompleteChatAsync(messages, options);
 
         ChatCompletion completions = completionsResponse.Value;
 
         string completion = completions.Content[0].Text;
-        int tokens = completions.Usage.OutputTokens;
-
+        int tokens = completions.Usage.TotalTokens;
 
         return (completion, tokens);
     }
@@ -163,7 +172,7 @@ public class OpenAiService
             EndUserId = sessionId,
             MaxTokens = 200,
             Temperature = 0.0f,
-            //NucleusSamplingFactor = 1.0f,
+            TopP = 1.0f,
             FrequencyPenalty = 0,
             PresencePenalty = 0
         };
@@ -173,7 +182,8 @@ public class OpenAiService
             new SystemChatMessage(_summarizePrompt),
             new UserChatMessage(conversationText)
         };
-        ClientResult<ChatCompletion> completionsResponse = await _client.GetChatClient(_completionDeploymentName).CompleteChatAsync(messages);
+
+        ClientResult<ChatCompletion> completionsResponse = await _chatClient.CompleteChatAsync(messages, options);
 
         ChatCompletion completions = completionsResponse.Value;
 
@@ -192,11 +202,16 @@ public class OpenAiService
 
         float[] embedding = new float[0];
 
-        var response = await _client.GetEmbeddingClient(_embeddingDeploymentName).GenerateEmbeddingAsync(input);
+        EmbeddingGenerationOptions options = new()
+        {
+            Dimensions = 1536
+        };
+
+        var response = await _embeddingClient.GenerateEmbeddingAsync(input);
 
         Embedding embeddings = response.Value;
 
-        embedding = embeddings.Vector.ToArray() ;
+        embedding = embeddings.Vector.ToArray();
 
         return embedding;
     }

@@ -18,7 +18,7 @@ builder.AddAzureCosmosClient(
     "cosmos",
     settings =>
     {
-        settings.DisableTracing = true;
+        settings.DisableTracing = false;
         settings.Credential = new DefaultAzureCredential();
     },
     clientOptions => {
