@@ -2,10 +2,10 @@
 using Microsoft.SemanticKernel.ChatCompletion;
 using Cosmos.Copilot.Models;
 using Microsoft.SemanticKernel.Embeddings;
-using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Identity;
 using Newtonsoft.Json;
+using OpenAI.Chat;
 
 namespace Cosmos.Copilot.Services;
 
@@ -101,10 +101,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.OutputTokens;
 
         return (completion, tokens);
     }
@@ -145,10 +145,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.OutputTokens;
 
         return (completion, tokens);
     }
