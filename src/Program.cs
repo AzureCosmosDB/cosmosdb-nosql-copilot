@@ -18,14 +18,22 @@ builder.AddAzureCosmosClient(
     "cosmos",
     settings =>
     {
-        settings.DisableTracing = false;
         settings.Credential = new DefaultAzureCredential();
+        settings.DisableTracing = false;
     },
     clientOptions => {
         clientOptions.ApplicationName = "cosmos-copilot";
         clientOptions.SerializerOptions = new()
         {
             PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        };
+        clientOptions.CosmosClientTelemetryOptions = new()
+        {
+            CosmosThresholdOptions = new()
+            {
+                PointOperationLatencyThreshold = TimeSpan.FromMilliseconds(10),
+                NonPointOperationLatencyThreshold = TimeSpan.FromMilliseconds(20)
+            }
         };
     });
 
@@ -38,8 +46,8 @@ if (endpoint is null)
 builder.AddAzureOpenAIClient("openAiConnectionName",
     configureSettings: settings =>
     {
-        settings.Endpoint = new Uri(endpoint);
         settings.Credential = new DefaultAzureCredential();
+        settings.Endpoint = new Uri(endpoint);
     });
 
 builder.Services.RegisterServices();
