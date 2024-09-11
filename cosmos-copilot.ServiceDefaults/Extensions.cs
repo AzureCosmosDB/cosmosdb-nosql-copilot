@@ -43,6 +43,7 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
+        AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
