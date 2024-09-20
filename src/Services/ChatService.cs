@@ -200,8 +200,8 @@ public class ChatService
         string conversationText = string.Join(" ", messages.Select(m => m.Prompt + " " + m.Completion));
 
         //Send to OpenAI to summarize the conversation
-        string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
-        //string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
+        //string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
+        string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
 
         await RenameChatSessionAsync( tenantId,  userId, sessionId, completionText);
 
@@ -267,8 +267,8 @@ public class ChatService
         string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
 
         //Get the embeddings for the user prompts
-        float[] vectors = await _openAiService.GetEmbeddingsAsync(prompts);
-        //float[] vectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
+        //float[] vectors = await _openAiService.GetEmbeddingsAsync(prompts);
+        float[] vectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
 
         //Check the cache for similar vectors
         string response = await _cosmosDbService.GetCacheAsync(vectors, _cacheSimilarityScore);
