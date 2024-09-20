@@ -400,5 +400,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 appsettings.Development.json
-/src/cosmos-copilot.WebApp/Properties/ServiceDependencies/local
+src/cosmos-copilot.WebApp/Properties/ServiceDependencies/local/*
 serviceDependencies.local.json
