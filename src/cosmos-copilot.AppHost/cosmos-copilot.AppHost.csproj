@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\cosmos-copilot.csproj" />
+    <ProjectReference Include="..\cosmos-copilot.WebApp\cosmos-copilot.WebApp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 //  .AddDatabase("cosmoscopilotdb")
 //  .RunAsEmulator();
 
-builder.AddProject<Projects.cosmos_copilot>("webfrontend")
+builder.AddProject<Projects.cosmos_copilot_WebApp>("webfrontend")
     .WithExternalHttpEndpoints();
     //.WithReference(cosmos);
 

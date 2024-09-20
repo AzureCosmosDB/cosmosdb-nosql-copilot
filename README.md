@@ -14,12 +14,12 @@ products:
 - azure-openai
 urlFragment: ai-samples
 name: Build Copilot app using Azure Cosmos DB for NoSQL
-description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
 ---
 
-# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel and .NET Aspire
 
-This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service built with .NET Aspire and hosted on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
 ## Concepts Covered
 
