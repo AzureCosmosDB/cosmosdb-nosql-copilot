@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Cosmos.Copilot.Models;
 
 public record Message

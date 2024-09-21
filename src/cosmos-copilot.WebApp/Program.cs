@@ -1,12 +1,55 @@
+using Azure.Identity;
 using Cosmos.Copilot.Options;
 using Cosmos.Copilot.Services;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add service defaults & Aspire components.
+builder.AddServiceDefaults();
+
 builder.RegisterConfiguration();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Configure Azure Cosmos DB Aspire integration
+builder.AddAzureCosmosClient(
+    "cosmos",
+    settings =>
+    {
+        settings.Credential = new DefaultAzureCredential();
+        settings.DisableTracing = false;
+    },
+    clientOptions => {
+        clientOptions.ApplicationName = "cosmos-copilot";
+        clientOptions.SerializerOptions = new()
+        {
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        };
+        clientOptions.CosmosClientTelemetryOptions = new()
+        {
+            CosmosThresholdOptions = new()
+            {
+                PointOperationLatencyThreshold = TimeSpan.FromMilliseconds(10),
+                NonPointOperationLatencyThreshold = TimeSpan.FromMilliseconds(20)
+            }
+        };
+    });
+
+// Configure OpenAI Aspire integration
+var endpoint = builder.Configuration.GetSection(nameof(OpenAi)).GetValue<string>("Endpoint");
+if (endpoint is null)
+{
+    throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
+}
+builder.AddAzureOpenAIClient("openAiConnectionName",
+    configureSettings: settings =>
+    {
+        settings.Credential = new DefaultAzureCredential();
+        settings.Endpoint = new Uri(endpoint);
+    });
+
 builder.Services.RegisterServices();
 
 var app = builder.Build();
@@ -45,41 +88,8 @@ static class ProgramExtensions
 
     public static void RegisterServices(this IServiceCollection services)
     {
-        services.AddSingleton<CosmosDbService, CosmosDbService>((provider) =>
-        {
-            var cosmosDbOptions = provider.GetRequiredService<IOptions<CosmosDb>>();
-            if (cosmosDbOptions is null)
-            {
-                throw new ArgumentException($"{nameof(IOptions<CosmosDb>)} was not resolved through dependency injection.");
-            }
-            else
-            {
-                return new CosmosDbService(
-                    endpoint: cosmosDbOptions.Value?.Endpoint ?? String.Empty,
-                    databaseName: cosmosDbOptions.Value?.Database ?? String.Empty,
-                    chatContainerName: cosmosDbOptions.Value?.ChatContainer ?? String.Empty,
-                    cacheContainerName: cosmosDbOptions.Value?.CacheContainer ?? String.Empty,
-                    productContainerName: cosmosDbOptions.Value?.ProductContainer ?? String.Empty,
-                    productDataSourceURI: cosmosDbOptions.Value?.ProductDataSourceURI ?? String.Empty
-                );
-            }
-        });
-        services.AddSingleton<OpenAiService, OpenAiService>((provider) =>
-        {
-            var openAiOptions = provider.GetRequiredService<IOptions<OpenAi>>();
-            if (openAiOptions is null)
-            {
-                throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
-            }
-            else
-            {
-                return new OpenAiService(
-                    endpoint: openAiOptions.Value?.Endpoint ?? String.Empty,
-                    completionDeploymentName: openAiOptions.Value?.CompletionDeploymentName ?? String.Empty,
-                    embeddingDeploymentName: openAiOptions.Value?.EmbeddingDeploymentName ?? String.Empty
-                );
-            }
-        });
+        services.AddSingleton<CosmosDbService, CosmosDbService>();
+        services.AddSingleton<OpenAiService, OpenAiService>();
         services.AddSingleton<SemanticKernelService, SemanticKernelService>((provider) =>
         {
             var semanticKernalOptions = provider.GetRequiredService<IOptions<SemanticKernel>>();

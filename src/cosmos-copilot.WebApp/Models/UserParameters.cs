@@ -13,6 +13,4 @@ namespace Cosmos.Copilot.Models
             TenantId = _tenantId;
         }
     }
-    
-    
 }
