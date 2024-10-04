@@ -9,6 +9,12 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.RegisterServices();
 
+//builder.Configuration
+//    .AddJsonFile("secrets.json", optional: true, reloadOnChange: true)
+//    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+//    .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+//    .AddEnvironmentVariables();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -82,10 +88,10 @@ static class ProgramExtensions
         });
         services.AddSingleton<SemanticKernelService, SemanticKernelService>((provider) =>
         {
-            var semanticKernalOptions = provider.GetRequiredService<IOptions<SemanticKernel>>();
+            var semanticKernalOptions = provider.GetRequiredService<IOptions<OpenAi>>();
             if (semanticKernalOptions is null)
             {
-                throw new ArgumentException($"{nameof(IOptions<SemanticKernel>)} was not resolved through dependency injection.");
+                throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
             }
             else
             {

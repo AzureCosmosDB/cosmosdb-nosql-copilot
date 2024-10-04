@@ -7,13 +7,12 @@ param environmentName string
 
 @minLength(1)
 @allowed([
-  'australiaeast'
-  'eastus'
   'eastus2'
+  'eastus'
   'japaneast'
-  'southcentralus'
   'uksouth'
-  'westeurope'
+  'northeurope'
+  'westus3'
 ])
 @description('Primary location for all resources.')
 param location string
