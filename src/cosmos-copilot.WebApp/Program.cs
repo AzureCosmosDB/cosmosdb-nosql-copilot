@@ -3,6 +3,7 @@ using Cosmos.Copilot.Options;
 using Cosmos.Copilot.Services;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,12 +15,15 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 // Configure Azure Cosmos DB Aspire integration
+// mjb: Added this line to get the endpoint from the configuration
+var cosmosEndpoint = builder.Configuration.GetSection(nameof(CosmosDb)).GetValue<string>("Endpoint");
 builder.AddAzureCosmosClient(
     "cosmos",
     settings =>
     {
         settings.Credential = new DefaultAzureCredential();
         settings.DisableTracing = false;
+        settings.AccountEndpoint = new Uri(cosmosEndpoint!);
     },
     clientOptions => {
         clientOptions.ApplicationName = "cosmos-copilot";
@@ -92,10 +96,11 @@ static class ProgramExtensions
         services.AddSingleton<OpenAiService, OpenAiService>();
         services.AddSingleton<SemanticKernelService, SemanticKernelService>((provider) =>
         {
-            var semanticKernalOptions = provider.GetRequiredService<IOptions<SemanticKernel>>();
+            // mjb: I changed this in main branch to reuse OpenAi options and DI that into Semantic Kernel since these represent actual Azure services
+            var semanticKernalOptions = provider.GetRequiredService<IOptions<OpenAi>>();
             if (semanticKernalOptions is null)
             {
-                throw new ArgumentException($"{nameof(IOptions<SemanticKernel>)} was not resolved through dependency injection.");
+                throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
             }
             else
             {
