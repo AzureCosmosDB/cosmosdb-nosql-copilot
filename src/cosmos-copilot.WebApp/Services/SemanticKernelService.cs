@@ -56,11 +56,11 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(IOptions<SemanticKernel> skOptions)
+    public SemanticKernelService(IOptions<OpenAi> openAIOptions)
     {
-        var endpoint = skOptions.Value.Endpoint;
-        var completionDeploymentName = skOptions.Value.CompletionDeploymentName;
-        var embeddingDeploymentName = skOptions.Value.EmbeddingDeploymentName;
+        var endpoint = openAIOptions.Value.Endpoint;
+        var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
+        var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
 
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);

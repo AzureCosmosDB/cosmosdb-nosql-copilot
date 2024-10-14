@@ -343,22 +343,21 @@ public class CosmosDbService
     public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
     {
         List<Product> results = new();
-        
+
         //Return only the properties we need to generate a completion. Often don't need id values.
+
+        //{productMaxResults}
         string queryText = $"""
             SELECT 
-                Top {productMaxResults} 
-                p.categoryName, p.sku, p.name, p.description, p.price, p.tags
-            FROM 
-                (SELECT s.categoryName, s.sku, s.name, s.description, s.price, s.tags, 
-                VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
-            p 
-            ORDER BY 
-                p.similarityScore desc
+                Top @maxResults
+                c.categoryName, c.sku, c.name, c.description, c.price, c.tags, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c 
+            ORDER BY VectorDistance(c.vectors, @vectors)
             """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
+            .WithParameter("@maxResults", productMaxResults)
             .WithParameter("@vectors", vectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
@@ -388,10 +387,17 @@ public class CosmosDbService
         string cacheResponse = "";
 
         string queryText = $"""
-            SELECT Top 1 x.prompt, x.completion, x.similarityScore 
-                FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
-            x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+            SELECT Top 1 c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c  
+            WHERE VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY VectorDistance(c.vectors, @vectors)
             """;
+
+        //string queryText = $"""
+        //    SELECT Top 1 x.prompt, x.completion, x.similarityScore 
+        //        FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
+        //    x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+        //    """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
@@ -433,7 +439,14 @@ public class CosmosDbService
     public async Task CacheRemoveAsync(float[] vectors)
     {
         double similarityScore = 0.99;
-        string queryText = "SELECT Top 1 c.id FROM (SELECT c.id, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
+        //string queryText = "SELECT Top 1 c.id FROM (SELECT c.id, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
+
+        string queryText = $"""
+            SELECT Top 1 c.id
+            FROM c  
+            WHERE VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY VectorDistance(c.vectors, @vectors)
+            """;
 
         var queryDef = new QueryDefinition(
              query: queryText)

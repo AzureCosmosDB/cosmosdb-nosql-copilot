@@ -85,9 +85,6 @@ static class ProgramExtensions
         builder.Services.AddOptions<OpenAi>()
             .Bind(builder.Configuration.GetSection(nameof(OpenAi)));
 
-        builder.Services.AddOptions<SemanticKernel>()
-            .Bind(builder.Configuration.GetSection(nameof(SemanticKernel)));
-
         builder.Services.AddOptions<Chat>()
             .Bind(builder.Configuration.GetSection(nameof(Chat)));
     }
