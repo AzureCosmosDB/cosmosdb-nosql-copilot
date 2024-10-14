@@ -1,4 +1,6 @@
 ﻿using Cosmos.Copilot.Models;
+using Cosmos.Copilot.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.ML.Tokenizers;
 
 namespace Cosmos.Copilot.Services;
@@ -13,11 +15,15 @@ public class ChatService
     private readonly double _cacheSimilarityScore;
     private readonly int _productMaxResults;
 
-    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, string maxConversationTokens, string cacheSimilarityScore, string productMaxResults)
+    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
     {
         _cosmosDbService = cosmosDbService;
         _openAiService = openAiService;
         _semanticKernelService = semanticKernelService;
+
+        var maxConversationTokens = chatOptions.Value.MaxConversationTokens;
+        var cacheSimilarityScore = chatOptions.Value.CacheSimilarityScore;
+        var productMaxResults = chatOptions.Value.ProductMaxResults;
 
         _maxConversationTokens = Int32.TryParse(maxConversationTokens, out _maxConversationTokens) ? _maxConversationTokens : 100;
         _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
@@ -124,14 +130,21 @@ public class ChatService
         }
         else  //Cache miss, send to OpenAI to generate a completion
         {
-            //Generate embeddings for the user prompt
-            float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
-            //float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+            // Non-RAG pattern completions
+            // Generate a completion and get tokens used with current context window 
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetChatCompletionAsync(sessionId, contextWindow);
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
 
-            //These functions are for doing RAG Pattern completions
-            List <Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
-            (chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
-            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            // RAG Pattern embeddings generation
+            // Generate embeddings for the user prompt
+            //float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
+            float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+            List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
+
+            // RAG Pattern completions
+            //Generate a completion and tokens used from current context window and vector search results
+            //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
 
             //Cache the prompts in the current context window and their vectors with the generated completion
             await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);
@@ -193,8 +206,8 @@ public class ChatService
         string conversationText = string.Join(" ", messages.Select(m => m.Prompt + " " + m.Completion));
 
         //Send to OpenAI to summarize the conversation
-        string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
-        //string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
+        //string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
+        string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
 
         await RenameChatSessionAsync( tenantId,  userId, sessionId, completionText);
 
@@ -260,8 +273,8 @@ public class ChatService
         string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
 
         //Get the embeddings for the user prompts
-        float[] vectors = await _openAiService.GetEmbeddingsAsync(prompts);
-        //float[] vectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
+        //float[] vectors = await _openAiService.GetEmbeddingsAsync(prompts);
+        float[] vectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
 
         //Check the cache for similar vectors
         string response = await _cosmosDbService.GetCacheAsync(vectors, _cacheSimilarityScore);

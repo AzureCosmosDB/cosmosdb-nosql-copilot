@@ -1,11 +1,8 @@
-﻿using Azure.Core;
-using Azure.Identity;
-using Cosmos.Copilot.Models;
+﻿using Cosmos.Copilot.Models;
+using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -24,18 +21,20 @@ public class CosmosDbService
     /// <summary>
     /// Creates a new instance of the service.
     /// </summary>
-    /// <param name="endpoint">Endpoint URI.</param>
-    /// <param name="databaseName">Name of the database to access.</param>
-    /// <param name="chatContainerName">Name of the chat container to access.</param>
-    /// <param name="cacheContainerName">Name of the cache container to access.</param>
-    /// <param name="productContainerName">Name of the product container to access.</param>
+    /// <param name="client">CosmosClient injected via DI.</param>
+    /// <param name="cosmosOptions">Options.</param>
     /// <exception cref="ArgumentNullException">Thrown when endpoint, key, databaseName, cacheContainername or chatContainerName is either null or empty.</exception>
     /// <remarks>
     /// This constructor will validate credentials and create a service client instance.
     /// </remarks>
-    public CosmosDbService(string endpoint, string databaseName, string chatContainerName, string cacheContainerName, string productContainerName, string productDataSourceURI)
+    public CosmosDbService(CosmosClient client, IOptions<CosmosDb> cosmosOptions)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
+        var databaseName = cosmosOptions.Value.Database;
+        var chatContainerName = cosmosOptions.Value.ChatContainer;
+        var cacheContainerName = cosmosOptions.Value.CacheContainer;
+        var productContainerName = cosmosOptions.Value.ProductContainer;
+        var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
+
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(chatContainerName);
         ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
@@ -43,17 +42,6 @@ public class CosmosDbService
         ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
 
         _productDataSourceURI = productDataSourceURI;
-
-        CosmosSerializationOptions options = new()
-        {
-            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-        };
-
-        TokenCredential credential = new DefaultAzureCredential();
-        CosmosClient client = new CosmosClientBuilder(endpoint, credential)
-            .WithSerializerOptions(options)
-            .Build();
-
 
         Database database = client.GetDatabase(databaseName)!;
         Container chatContainer = database.GetContainer(chatContainerName)!;
@@ -355,22 +343,21 @@ public class CosmosDbService
     public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
     {
         List<Product> results = new();
-        
+
         //Return only the properties we need to generate a completion. Often don't need id values.
+
+        //{productMaxResults}
         string queryText = $"""
             SELECT 
-                Top {productMaxResults} 
-                p.categoryName, p.sku, p.name, p.description, p.price, p.tags
-            FROM 
-                (SELECT s.categoryName, s.sku, s.name, s.description, s.price, s.tags, 
-                VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
-            p 
-            ORDER BY 
-                p.similarityScore desc
+                Top @maxResults
+                c.categoryName, c.sku, c.name, c.description, c.price, c.tags, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c 
+            ORDER BY VectorDistance(c.vectors, @vectors)
             """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
+            .WithParameter("@maxResults", productMaxResults)
             .WithParameter("@vectors", vectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
@@ -400,10 +387,17 @@ public class CosmosDbService
         string cacheResponse = "";
 
         string queryText = $"""
-            SELECT Top 1 x.prompt, x.completion, x.similarityScore 
-                FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
-            x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+            SELECT Top 1 c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c  
+            WHERE VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY VectorDistance(c.vectors, @vectors)
             """;
+
+        //string queryText = $"""
+        //    SELECT Top 1 x.prompt, x.completion, x.similarityScore 
+        //        FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
+        //    x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+        //    """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
@@ -445,7 +439,14 @@ public class CosmosDbService
     public async Task CacheRemoveAsync(float[] vectors)
     {
         double similarityScore = 0.99;
-        string queryText = "SELECT Top 1 c.id FROM (SELECT c.id, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
+        //string queryText = "SELECT Top 1 c.id FROM (SELECT c.id, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
+
+        string queryText = $"""
+            SELECT Top 1 c.id
+            FROM c  
+            WHERE VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY VectorDistance(c.vectors, @vectors)
+            """;
 
         var queryDef = new QueryDefinition(
              query: queryText)

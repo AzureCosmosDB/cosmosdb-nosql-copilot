@@ -2,10 +2,12 @@
 using Microsoft.SemanticKernel.ChatCompletion;
 using Cosmos.Copilot.Models;
 using Microsoft.SemanticKernel.Embeddings;
-using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Identity;
 using Newtonsoft.Json;
+using OpenAI.Chat;
+using Microsoft.Extensions.Options;
+using Cosmos.Copilot.Options;
 
 namespace Cosmos.Copilot.Services;
 
@@ -49,15 +51,17 @@ public class SemanticKernelService
     /// <summary>
     /// Creates a new instance of the Semantic Kernel.
     /// </summary>
-    /// <param name="endpoint">Endpoint URI.</param>
-    /// <param name="completionDeploymentName">Name of the deployed Azure OpenAI completion model.</param>
-    /// <param name="embeddingDeploymentName">Name of the deployed Azure OpenAI embedding model.</param>
+    /// <param name="skOptions">Options.</param>
     /// <exception cref="ArgumentNullException">Thrown when endpoint, key, or modelName is either null or empty.</exception>
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(string endpoint, string completionDeploymentName, string embeddingDeploymentName)
+    public SemanticKernelService(IOptions<OpenAi> openAIOptions)
     {
+        var endpoint = openAIOptions.Value.Endpoint;
+        var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
+        var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
+
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
         ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
@@ -101,10 +105,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.OutputTokens;
 
         return (completion, tokens);
     }
@@ -145,10 +149,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.OutputTokens;
 
         return (completion, tokens);
     }

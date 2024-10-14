@@ -14,12 +14,12 @@ products:
 - azure-openai
 urlFragment: ai-samples
 name: Build Copilot app using Azure Cosmos DB for NoSQL
-description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
 ---
 
-# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel and .NET Aspire
 
-This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service built with .NET Aspire and hosted on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
 ## Concepts Covered
 
@@ -35,17 +35,17 @@ This application demonstrates the following concepts and how to implement them:
 
 ### Architecture Diagram
 
-![Architecture Diagram](cosmos-nosql-copilot-diagram.png)
+![Architecture Diagram](./media/cosmos-nosql-copilot-diagram.png)
 
 ### User Experience
-![Cosmos DB + ChatGPT user interface](screenshot.png)
+![Cosmos Copilot app user interface](./media/screenshot.png)
 
 
 ## Getting Started
 
 ### Prerequisites
 
-- Azure subscription. [Start free](https://azure.microsoft.com/free)
+- Azure subscription.
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
 - Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
@@ -66,11 +66,18 @@ This application demonstrates the following concepts and how to implement them:
 
     For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
-### Instructions
+    #### Azure Subscription Permission Requirements
+
+    This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+
+    - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
+    - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
+
+### Deployment
 
 1. Open a terminal and navigate to where you would like to clone this solution
 
-1. Run the following command to download:
+1. Run the following command to download the solution locally to your machine:
 
     ```bash
     azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
@@ -84,15 +91,32 @@ This application demonstrates the following concepts and how to implement them:
     azd auth login
     ```
 
-1. Deploy the services to Azure, build your container, and deploy the application.
+1. Provision the Azure services, build your local solution container, and deploy the application.
     
     ```bash
     azd up
     ```
 
+### Setting up local debugging
+
+When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications.
+
+To modify values for the Quickstarts, locate the value of `UserSecretsId` in the csproj file in the /src folder of this sample and save the value.
+
+```xml
+<PropertyGroup>
+  <UserSecretsId>your-guid-here</UserSecretsId>
+</PropertyGroup>
+```
+Locate the secrets.json file and open with a text editor.
+
+- Windows: `C:\Users\<YourUserName>\AppData\Roaming\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`
+- macOS/Linux: `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json`
+
+
 ### Quickstart
 
-This solution has a number of quickstarts than you can run through to learn about the features in this sample and how to implement them yourself.
+Follow the Quickstarts in this solution to go through the concepts for building RAG Pattern apps and the features in this sample and how to implement them yourself.
 
 Please see [Quickstarts](quickstart.md)
 
