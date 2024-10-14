@@ -1,4 +1,6 @@
 ﻿using Cosmos.Copilot.Models;
+using Cosmos.Copilot.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.ML.Tokenizers;
 
 namespace Cosmos.Copilot.Services;
@@ -13,11 +15,15 @@ public class ChatService
     private readonly double _cacheSimilarityScore;
     private readonly int _productMaxResults;
 
-    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, string maxConversationTokens, string cacheSimilarityScore, string productMaxResults)
+    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
     {
         _cosmosDbService = cosmosDbService;
         _openAiService = openAiService;
         _semanticKernelService = semanticKernelService;
+
+        var maxConversationTokens = chatOptions.Value.MaxConversationTokens;
+        var cacheSimilarityScore = chatOptions.Value.CacheSimilarityScore;
+        var productMaxResults = chatOptions.Value.ProductMaxResults;
 
         _maxConversationTokens = Int32.TryParse(maxConversationTokens, out _maxConversationTokens) ? _maxConversationTokens : 100;
         _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;

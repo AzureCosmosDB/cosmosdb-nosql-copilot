@@ -6,6 +6,8 @@ using Azure.Core;
 using Azure.Identity;
 using Newtonsoft.Json;
 using OpenAI.Chat;
+using Microsoft.Extensions.Options;
+using Cosmos.Copilot.Options;
 
 namespace Cosmos.Copilot.Services;
 
@@ -49,15 +51,17 @@ public class SemanticKernelService
     /// <summary>
     /// Creates a new instance of the Semantic Kernel.
     /// </summary>
-    /// <param name="endpoint">Endpoint URI.</param>
-    /// <param name="completionDeploymentName">Name of the deployed Azure OpenAI completion model.</param>
-    /// <param name="embeddingDeploymentName">Name of the deployed Azure OpenAI embedding model.</param>
+    /// <param name="skOptions">Options.</param>
     /// <exception cref="ArgumentNullException">Thrown when endpoint, key, or modelName is either null or empty.</exception>
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(string endpoint, string completionDeploymentName, string embeddingDeploymentName)
+    public SemanticKernelService(IOptions<SemanticKernel> skOptions)
     {
+        var endpoint = skOptions.Value.Endpoint;
+        var completionDeploymentName = skOptions.Value.CompletionDeploymentName;
+        var embeddingDeploymentName = skOptions.Value.EmbeddingDeploymentName;
+
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
         ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
