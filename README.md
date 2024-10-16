@@ -195,7 +195,13 @@ This template uses gpt-4o and text-embedding-3-large models which may not be ava
 
 You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
 
-* [Azure Product] - [plan type] [link to pricing for product](https://azure.microsoft.com/pricing/)
+As an example in US dollars, here's how the sample is currently built:
+
+Average Monthly Cost:
+* Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): $0.25
+* Azure App Service (B1 Plan): $12.41
+* Azure OpenAI (GPT-4o 1M input/output tokens): $20 (Sample uses 10K tokens)
+* Azure OpenAI (text-3-large): < $0.01 (Sample uses 5K tokens)
 
 ## Resources
 
