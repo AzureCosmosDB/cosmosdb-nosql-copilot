@@ -19,7 +19,7 @@ hooks:
         shell: sh
         continueOnError: false
         interactive: true
-        run: ./infra/azd-hooks/preprovision.sh
+        run: chmod +x ./infra/azd-hooks/preprovision.sh
   postprovision:
     windows:
       run: |

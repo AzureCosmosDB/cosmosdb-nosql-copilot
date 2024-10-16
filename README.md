@@ -19,7 +19,14 @@ description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI S
 
 # Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]([placeholder](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot))
+[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
+
 This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+
+## Important Security Notice
+
+This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.  
 
 ## Concepts Covered
 
@@ -72,6 +79,52 @@ This application demonstrates the following concepts and how to implement them:
 
     - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
     - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
+
+### GitHub Codespaces
+
+You can run this template virtually by using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+
+1. Open the template (this may take several minutes):
+
+    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]([placeholder](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot))
+
+2. Open a terminal window
+3. Continue with the [deploying steps](#deployment)
+
+### Local Environment
+
+If you're not using one of the above options for opening the project, then you'll need to:
+
+1. Make sure the following tools are installed:
+
+    * [.NET 8](https://dotnet.microsoft.com/downloads/)
+    * [Git](https://git-scm.com/downloads)
+    * [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+    * [VS Code](https://code.visualstudio.com/Download) or [Visual Studio](https://visualstudio.microsoft.com/downloads/)
+        * If using VS Code, install the [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
+
+2. Download the project code:
+
+    ```shell
+    azd init -t cosmosdb-nosql-copilot
+    ```
+
+3. If you're using Visual Studio, open the src/cosmos-copilot.sln solution file. If you're using VS Code, open the src folder.
+
+7. Continue with the [deploying steps](#deployment).
+
+### VS Code Dev Containers
+
+A related option is VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+
+1. Start Docker Desktop (install it if not already installed)
+2. Open the project:
+
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
+
+3. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window.
+
+4. Continue with the [deploying steps](#deployment)
 
 ### Deployment
 
@@ -130,6 +183,25 @@ Please see [Quickstarts](quickstart.md)
     ```bash
     azd down
     ```
+
+## Guidance
+
+### Region Availability
+
+This template uses gpt-4o and text-embedding-3-large models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
+  * We recommend using `eastus2', 'eastus', 'japaneast', 'uksouth', 'northeurope', or 'westus3'
+
+### Costs
+
+You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
+
+As an example in US dollars, here's how the sample is currently built:
+
+Average Monthly Cost:
+* Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): $0.25
+* Azure App Service (B1 Plan): $12.41
+* Azure OpenAI (GPT-4o 1M input/output tokens): $20 (Sample uses 10K tokens)
+* Azure OpenAI (text-3-large): < $0.01 (Sample uses 5K tokens)
 
 ## Resources
 
