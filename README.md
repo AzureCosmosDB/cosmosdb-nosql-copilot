@@ -1,17 +1,17 @@
 ---
 page_type: sample
 languages:
-- azdeveloper
-- bicep
-- aspx-csharp
-- csharp
-- dockerfile
-- nosql
+  - azdeveloper
+  - bicep
+  - aspx-csharp
+  - csharp
+  - dockerfile
+  - nosql
 products:
-- azure
-- azure-cosmos-db
-- azure-app-service
-- azure-openai
+  - azure
+  - azure-cosmos-db
+  - azure-app-service
+  - azure-openai
 urlFragment: ai-samples
 name: Build Copilot app using Azure Cosmos DB for NoSQL
 description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
@@ -31,15 +31,15 @@ This application demonstrates the following concepts and how to implement them:
 - Manage per-request token consumption and payload sizes for Azure OpenAI Service requests.
 - Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
 - Using the Semantic Kernel SDK for completion and embeddings generation.
-- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM. 
+- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM.
 
 ### Architecture Diagram
 
 ![Architecture Diagram](./media/cosmos-nosql-copilot-diagram.png)
 
 ### User Experience
-![Cosmos Copilot app user interface](./media/screenshot.png)
 
+![Cosmos Copilot app user interface](./media/screenshot.png)
 
 ## Getting Started
 
@@ -52,26 +52,26 @@ This application demonstrates the following concepts and how to implement them:
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
 
+  #### Vector search Preview details
 
-    #### Vector search Preview details
-    This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
-    
-    1. Navigate to your Azure Cosmos DB for NoSQL resource page.
-    1. Select the "Features" pane under the "Settings" menu item.
-    1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
-    1. Read the description to confirm you want to enroll in the preview.
-    1. Select "Enable" to enroll in the Vector Search preview.
+  This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
 
-    #### Checking Azure OpenAI quota limits
+  1. Navigate to your Azure Cosmos DB for NoSQL resource page.
+  1. Select the "Features" pane under the "Settings" menu item.
+  1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
+  1. Read the description to confirm you want to enroll in the preview.
+  1. Select "Enable" to enroll in the Vector Search preview.
 
-    For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  #### Checking Azure OpenAI quota limits
 
-    #### Azure Subscription Permission Requirements
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
-    This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+  #### Azure Subscription Permission Requirements
 
-    - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
-    - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
+  This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+
+  - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
+  - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
 
 ### Deployment
 
@@ -79,23 +79,23 @@ This application demonstrates the following concepts and how to implement them:
 
 1. Run the following command to download the solution locally to your machine:
 
-    ```bash
-    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
-    ```
+   ```bash
+   azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
+   ```
 
 1. From the terminal, navigate to the /infra directory in this solution.
 
 1. Log in to AZD.
-    
-    ```bash
-    azd auth login
-    ```
+
+   ```bash
+   azd auth login
+   ```
 
 1. Provision the Azure services, build your local solution container, and deploy the application.
-    
-    ```bash
-    azd up
-    ```
+
+   ```bash
+   azd up
+   ```
 
 ### Setting up local debugging
 
@@ -108,11 +108,11 @@ To modify values for the Quickstarts, locate the value of `UserSecretsId` in the
   <UserSecretsId>your-guid-here</UserSecretsId>
 </PropertyGroup>
 ```
+
 Locate the secrets.json file and open with a text editor.
 
 - Windows: `C:\Users\<YourUserName>\AppData\Roaming\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`
 - macOS/Linux: `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json`
-
 
 ### Quickstart
 
@@ -120,16 +120,15 @@ Follow the Quickstarts in this solution to go through the concepts for building 
 
 Please see [Quickstarts](quickstart.md)
 
-
 ## Clean up
 
 1. Open a terminal and navigate to the /infra directory in this solution.
 
 1. Type azd down
-    
-    ```bash
-    azd down
-    ```
+
+   ```bash
+   azd down
+   ```
 
 ## Resources
 
