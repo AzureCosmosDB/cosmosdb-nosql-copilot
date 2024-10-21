@@ -56,22 +56,53 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(IOptions<OpenAi> openAIOptions)
+    public SemanticKernelService(CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
         var endpoint = openAIOptions.Value.Endpoint;
         var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
         var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
 
+        var cosmosConnectionString = cosmosOptions.Value.Endpoint;
+        var databaseName = cosmosOptions.Value.Database;
+        var productContainerName = cosmosOptions.Value.ProductContainer;
+        var cacheContainerName = cosmosOptions.Value.CacheContainer;
+        var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
+
         ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
         ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
+        ArgumentNullException.ThrowIfNullOrEmpty(cosmosConnectionString);
+        ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
+        ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
 
         TokenCredential credential = new DefaultAzureCredential();
         // Initialize the Semantic Kernel
-        kernel = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion(completionDeploymentName, endpoint, credential)
-            .AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, endpoint, credential)
-            .Build();
+        kernel = Kernel.CreateBuilder();
+        
+        //Add Azure OpenAI chat completion service
+        kernel.AddAzureOpenAIChatCompletion(completionDeploymentName, endpoint, credential);
+
+        //Add Azure OpenAI text embedding generation service
+        builder.AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, endpoint, credential);
+
+        //Add Azure CosmosDB NoSql Vector Store
+        builder.Services.AddSingleton<Database>(
+            sp =>
+            {
+                cosmosClient,
+                return cosmosClient.GetDatabase(databaseName)
+            });
+        builder.AddAzureCosmosDBNoSQLVectorStore();
+        kernel = builder.Build();
+
+        _productDataSourceURI = productDataSourceURI;
+
+        Database database = cosmosClient.GetDatabase(databaseName);
+        var vectorStore = kernel.GetRequiredService<IVectorStore>();
+        var _productContainer = vectorStore.GetCollection<TKey, Product<TKey>>(productContainerName); 
+
+
     }
 
     /// <summary>
@@ -120,10 +151,10 @@ public class SemanticKernelService
     /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
     /// <param name="products">List of Product objects containing vector search results to send to the model.</param>
     /// <returns>Generated response along with tokens used to generate it.</returns>
-    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, List<Product> products)
+    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, string promptText, int productMaxResults)
     {
-        //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonConvert.SerializeObject(products);
+        float[] promptVectors = await GetEmbeddingsAsync(promptText);
+        string productsString = await SearchProductsAsync(promptVectors, productMaxResults);
 
         var skChatHistory = new ChatHistory();
         skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + productsString);
@@ -202,5 +233,86 @@ public class SemanticKernelService
         string completion = result.Items[0].ToString()!;
 
         return completion;
+    }
+
+    public async Task<string> SearchProductsAsync(float[] promptVectors, int productMaxResults)
+    {
+        var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
+        var searchResult = await _productContainer.SearchProductsAsync(promptVectors, options);
+        var resultRecords = await searchResult.Results.ToListAsync();
+
+
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonConvert.SerializeObject(resultRecords);
+        return productsString;
+    }
+
+    public async Task LoadProductDataAsync()
+    {
+        //Read the product container to see if there are any items
+        Product? item = null;
+        try {
+            
+            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: "26C74104-40BC-4541-8EF5-9892F7F03D72");
+            item = await _productContainer.GetAsync(compositeKey);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == Systems.Net.HttpStatusCode.NotFound)
+        { }
+
+        if (item is null)
+        {
+            string json = "";
+            string jsonFilePath = _productDataSourceURI;
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+            if(response.IsSuccessStatusCode)
+            {
+                json = await response.Content.ReadAsStringAsync();
+            }
+            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json);
+
+            foreach (var product in products)
+            {
+                try {
+                    await InsertProductAsync(product);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Upserts a new product.
+    /// </summary>
+    /// <param name="product">Product item to create or update.</param>
+    /// <returns>Id of the newly created product item.</returns>
+    public async Task<string> InsertProductAsync(Product product)
+    {
+        // PartitionKey partitionKey = new(product.categoryId);
+        // return await _productContainer.CreateItemAsync<Product>(
+        //     item: product,
+        //     partitionKey: partitionKey
+        // );
+
+        return await _productContainer.UpsertAsync(product);
+    }
+
+    /// <summary>
+    /// Delete a product.
+    /// </summary>
+    /// <param name="product">Product item to delete.</param>
+    public async Task DeleteProductAsync(Product product)
+    {
+        // PartitionKey partitionKey = new(product.categoryId);
+        // await _productContainer.DeleteItemAsync<Product>(
+        //     id: product.id,
+        //     partitionKey: partitionKey
+        // );
+
+        var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
+        await _productContainer.DeleteAsync(compositeKey);
     }
 }

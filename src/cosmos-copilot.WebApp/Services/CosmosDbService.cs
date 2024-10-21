@@ -59,44 +59,45 @@ public class CosmosDbService
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
     }
 
-    public async Task LoadProductDataAsync()
-    {
+    // TODO: Moved this code to SemanticKernelService, will clean up once testing is done. 
+    // public async Task LoadProductDataAsync()
+    // {
 
-        //Read the product container to see if there are any items
-        Product? item = null;
-        try 
-        {
-            item = await _productContainer.ReadItemAsync<Product>(id: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        { }
+    //     //Read the product container to see if there are any items
+    //     Product? item = null;
+    //     try 
+    //     {
+    //         item = await _productContainer.ReadItemAsync<Product>(id: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+    //     }
+    //     catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+    //     { }
 
-        if (item is null)
-        {
-            string json = "";
-            string jsonFilePath = _productDataSourceURI; //URI to the vectorized product JSON file
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
-            if(response.IsSuccessStatusCode)
-                json = await response.Content.ReadAsStringAsync();
+    //     if (item is null)
+    //     {
+    //         string json = "";
+    //         string jsonFilePath = _productDataSourceURI; //URI to the vectorized product JSON file
+    //         HttpClient client = new HttpClient();
+    //         HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+    //         if(response.IsSuccessStatusCode)
+    //             json = await response.Content.ReadAsStringAsync();
 
-            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
+    //         List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
 
 
 
-            foreach (var product in products)
-            {
-                try
-                {
-                    await InsertProductAsync(product);
-                }
-                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-                {
-                    Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
-                }
-            }
-        }
-    }
+    //         foreach (var product in products)
+    //         {
+    //             try
+    //             {
+    //                 await InsertProductAsync(product);
+    //             }
+    //             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+    //             {
+    //                 Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
+    //             }
+    //         }
+    //     }
+    // }
     /// <summary>
     /// Helper function to generate a full or partial hierarchical partition key based on parameters.
     /// </summary>
@@ -308,69 +309,70 @@ public class CosmosDbService
         await batch.ExecuteAsync();
     }
 
-    /// <summary>
-    /// Upserts a new product.
-    /// </summary>
-    /// <param name="product">Product item to create or update.</param>
-    /// <returns>Newly created product item.</returns>
-    public async Task<Product> InsertProductAsync(Product product)
-    {
-        PartitionKey partitionKey = new(product.categoryId);
-        return await _productContainer.CreateItemAsync<Product>(
-            item: product,
-            partitionKey: partitionKey
-        );
-    }
+    // TODO: Moved this code to SemanticKernelService, will clean up once testing is done. 
+    // /// <summary>
+    // /// Upserts a new product.
+    // /// </summary>
+    // /// <param name="product">Product item to create or update.</param>
+    // /// <returns>Newly created product item.</returns>
+    // public async Task<Product> InsertProductAsync(Product product)
+    // {
+    //     PartitionKey partitionKey = new(product.categoryId);
+    //     return await _productContainer.CreateItemAsync<Product>(
+    //         item: product,
+    //         partitionKey: partitionKey
+    //     );
+    // }
 
-    /// <summary>
-    /// Delete a product.
-    /// </summary>
-    /// <param name="product">Product item to delete.</param>
-    public async Task DeleteProductAsync(Product product)
-    {
-        PartitionKey partitionKey = new(product.categoryId);
-        await _productContainer.DeleteItemAsync<Product>(
-            id: product.id,
-            partitionKey: partitionKey
-        );
-    }
+    // /// <summary>
+    // /// Delete a product.
+    // /// </summary>
+    // /// <param name="product">Product item to delete.</param>
+    // public async Task DeleteProductAsync(Product product)
+    // {
+    //     PartitionKey partitionKey = new(product.categoryId);
+    //     await _productContainer.DeleteItemAsync<Product>(
+    //         id: product.id,
+    //         partitionKey: partitionKey
+    //     );
+    // }
 
-    /// <summary>
-    /// Search vectors for similar products.
-    /// </summary>
-    /// <param name="product">Product item to delete.</param>
-    /// <returns>Array of similar product items.</returns>
-    public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
-    {
-        List<Product> results = new();
+    // /// <summary>
+    // /// Search vectors for similar products.
+    // /// </summary>
+    // /// <param name="product">Product item to delete.</param>
+    // /// <returns>Array of similar product items.</returns>
+    // public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
+    // {
+    //     List<Product> results = new();
 
-        //Return only the properties we need to generate a completion. Often don't need id values.
+    //     //Return only the properties we need to generate a completion. Often don't need id values.
 
-        //{productMaxResults}
-        string queryText = $"""
-            SELECT 
-                Top @maxResults
-                c.categoryName, c.sku, c.name, c.description, c.price, c.tags, VectorDistance(c.vectors, @vectors) as similarityScore
-            FROM c 
-            ORDER BY VectorDistance(c.vectors, @vectors)
-            """;
+    //     //{productMaxResults}
+    //     string queryText = $"""
+    //         SELECT 
+    //             Top @maxResults
+    //             c.categoryName, c.sku, c.name, c.description, c.price, c.tags, VectorDistance(c.vectors, @vectors) as similarityScore
+    //         FROM c 
+    //         ORDER BY VectorDistance(c.vectors, @vectors)
+    //         """;
 
-        var queryDef = new QueryDefinition(
-                query: queryText)
-            .WithParameter("@maxResults", productMaxResults)
-            .WithParameter("@vectors", vectors);
+    //     var queryDef = new QueryDefinition(
+    //             query: queryText)
+    //         .WithParameter("@maxResults", productMaxResults)
+    //         .WithParameter("@vectors", vectors);
 
-        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
+    //     using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
 
-        while (resultSet.HasMoreResults)
-        {
-            FeedResponse<Product> response = await resultSet.ReadNextAsync();
+    //     while (resultSet.HasMoreResults)
+    //     {
+    //         FeedResponse<Product> response = await resultSet.ReadNextAsync();
 
-            results.AddRange(response);
-        }
+    //         results.AddRange(response);
+    //     }
 
-        return results;
-    }
+    //     return results;
+    // }
 
 
     /// <summary>

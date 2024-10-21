@@ -1,17 +1,28 @@
 ﻿using Azure;
+using DistanceFunction = SemanticKernel.Microsoft.Extensions.VectorData.DistanceFunction;
+using IndexKind = SemanticKernel.Microsoft.Extensions.VectorData.IndexKind;
 
 namespace Cosmos.Copilot.Models
 {
     public class Product
     {
+        [VectorStoreRecordKey]
         public string id { get; set; }
+        [VectorStoreRecordData]
         public string categoryId { get; set; }
+        [VectorStoreRecordData]
         public string categoryName { get; set; }
+        [VectorStoreRecordData]
         public string sku { get; set; }
+        [VectorStoreRecordData]
         public string name { get; set; }
+        [VectorStoreRecordData]
         public string description { get; set; }
+        [VectorStoreRecordData]
         public double price { get; set; }
+        [VectorStoreRecordData]
         public List<Tag> tags { get; set; }
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.DiskAnn)]
         public float[]? vectors { get; set; }
 
         public Product(string id, string categoryId, string categoryName, string sku, string name, string description, double price, List<Tag> tags, float[]? vectors = null)
