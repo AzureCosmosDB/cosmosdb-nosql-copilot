@@ -114,6 +114,7 @@ module cosmosDbAccount '../core/database/cosmos-db/nosql/account.bicep' = {
     tags: tags
     enableServerless: true
     enableVectorSearch: true
+    disableKeyBasedAuth: true
   }
 }
 
