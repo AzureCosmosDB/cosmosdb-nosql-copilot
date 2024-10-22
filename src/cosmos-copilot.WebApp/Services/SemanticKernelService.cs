@@ -56,35 +56,36 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
-        var endpoint = openAIOptions.Value.Endpoint;
         var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
         var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
 
-        var cosmosConnectionString = cosmosOptions.Value.Endpoint;
         var databaseName = cosmosOptions.Value.Database;
         var productContainerName = cosmosOptions.Value.ProductContainer;
-        var cacheContainerName = cosmosOptions.Value.CacheContainer;
         var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
 
-        ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
         ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
-        ArgumentNullException.ThrowIfNullOrEmpty(cosmosConnectionString);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
-        ArgumentNullException.ThrowIfNullOrEmpty(cacheContainerName);
 
-        TokenCredential credential = new DefaultAzureCredential();
+        _completionDeploymentName = completionDeploymentName;
+        _embeddingDeploymentName = embeddingDeploymentName;
+        _productDataSourceURI = productDataSourceURI;
+
+        _openAiClient = openAiClient;
+        _embeddingClient = _client.GetEmbeddingClient(_embeddingDeploymentName);
+        _chatClient = _client.GetChatClient(_completionDeploymentName);
+
         // Initialize the Semantic Kernel
         kernel = Kernel.CreateBuilder();
         
         //Add Azure OpenAI chat completion service
-        kernel.AddAzureOpenAIChatCompletion(completionDeploymentName, endpoint, credential);
+        kernel.AddAzureOpenAIChatCompletion(_completionDeploymentName, _chatClient);
 
         //Add Azure OpenAI text embedding generation service
-        builder.AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, endpoint, credential);
+        builder.AddAzureOpenAITextEmbeddingGeneration(_embeddingDeploymentName, _embeddingClient);
 
         //Add Azure CosmosDB NoSql Vector Store
         builder.Services.AddSingleton<Database>(
@@ -93,16 +94,13 @@ public class SemanticKernelService
                 cosmosClient,
                 return cosmosClient.GetDatabase(databaseName)
             });
-        builder.AddAzureCosmosDBNoSQLVectorStore();
+        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions { PartitionKeyPropertyName = "categoryId"};
+        builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
         kernel = builder.Build();
 
-        _productDataSourceURI = productDataSourceURI;
+        
 
-        Database database = cosmosClient.GetDatabase(databaseName);
-        var vectorStore = kernel.GetRequiredService<IVectorStore>();
-        var _productContainer = vectorStore.GetCollection<TKey, Product<TKey>>(productContainerName); 
-
-
+        var _productContainer = kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>();
     }
 
     /// <summary>
