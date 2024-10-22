@@ -26,9 +26,9 @@ This sample application shows how to build a multi-tenant, multi-user, Generativ
 
 ## Important Security Notice
 
-This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.  
+This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.
 
-## Concepts Covered
+## Features
 
 This application demonstrates the following concepts and how to implement them:
 
@@ -86,7 +86,7 @@ You can run this template virtually by using GitHub Codespaces. The button will 
 
 1. Open the template (this may take several minutes):
 
-    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]([placeholder](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot))
+    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot)
 
 2. Open a terminal window
 3. Continue with the [deploying steps](#deployment)
