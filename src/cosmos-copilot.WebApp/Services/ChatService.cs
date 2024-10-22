@@ -9,13 +9,13 @@ public class ChatService
 {
 
     private readonly CosmosDbService _cosmosDbService;
-    private readonly OpenAiService _openAiService;
+    // private readonly OpenAiService _openAiService;
     private readonly SemanticKernelService _semanticKernelService;
     private readonly int _maxConversationTokens;
     private readonly double _cacheSimilarityScore;
     private readonly int _productMaxResults;
 
-    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
+    public ChatService(CosmosDbService cosmosDbService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
     {
         _cosmosDbService = cosmosDbService;
         // TODO: OpenAIService is not being used anywhere, clean up code once testing is done.
@@ -33,7 +33,7 @@ public class ChatService
 
     public async Task InitializeAsync()
     {
-        await _cosmosDbService.LoadProductDataAsync();
+        await _semanticKernelService.LoadProductDataAsync();
     }
 
     /// <summary>

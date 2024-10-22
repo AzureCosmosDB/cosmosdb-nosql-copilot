@@ -2,12 +2,16 @@
 using Microsoft.SemanticKernel.ChatCompletion;
 using Cosmos.Copilot.Models;
 using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+using Microsoft.Extensions.VectorData;
 using Azure.Core;
 using Azure.Identity;
+using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
-using OpenAI.Chat;
 using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
+using Azure.AI.OpenAI;
+using Azure.AI.Inference;
 
 namespace Cosmos.Copilot.Services;
 
@@ -18,6 +22,11 @@ public class SemanticKernelService
 {
     //Semantic Kernel
     readonly Kernel kernel;
+    #pragma warning disable SKEXP0020
+    private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<Product> _productContainer;
+    #pragma warning restore SKEXP0020
+    private readonly string _productDataSourceURI;
+
 
     /// <summary>
     /// System prompt to send with user prompts to instruct the model for chat session
@@ -56,7 +65,7 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    public SemanticKernelService(AzureOpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
         var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
         var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
@@ -70,37 +79,35 @@ public class SemanticKernelService
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
 
-        _completionDeploymentName = completionDeploymentName;
-        _embeddingDeploymentName = embeddingDeploymentName;
-        _productDataSourceURI = productDataSourceURI;
-
-        _openAiClient = openAiClient;
-        _embeddingClient = _client.GetEmbeddingClient(_embeddingDeploymentName);
-        _chatClient = _client.GetChatClient(_completionDeploymentName);
+        // _embeddingClient = openAiClient.GetEmbeddingClient(embeddingDeploymentName);
+        // _chatClient = openAiClient.GetChatClient(completionDeploymentName);
 
         // Initialize the Semantic Kernel
-        kernel = Kernel.CreateBuilder();
+        var builder = Kernel.CreateBuilder();
         
         //Add Azure OpenAI chat completion service
-        kernel.AddAzureOpenAIChatCompletion(_completionDeploymentName, _chatClient);
+        builder.AddAzureOpenAIChatCompletion(completionDeploymentName, openAiClient);
 
         //Add Azure OpenAI text embedding generation service
-        builder.AddAzureOpenAITextEmbeddingGeneration(_embeddingDeploymentName, _embeddingClient);
+        builder.AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, openAiClient);
 
         //Add Azure CosmosDB NoSql Vector Store
         builder.Services.AddSingleton<Database>(
             sp =>
             {
-                cosmosClient,
-                return cosmosClient.GetDatabase(databaseName)
+                var client = cosmosClient;
+                return client.GetDatabase(databaseName);
             });
-        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions { PartitionKeyPropertyName = "categoryId"};
+        #pragma warning disable SKEXP0020
+        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product>{ PartitionKeyPropertyName = "categoryId" };
         builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
+        #pragma warning restore SKEXP0020
         kernel = builder.Build();
 
-        
-
-        var _productContainer = kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>();
+        _productDataSourceURI = productDataSourceURI;
+        #pragma warning disable SKEXP0020
+        _productContainer = (AzureCosmosDBNoSQLVectorStoreRecordCollection<Product>)kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>>();
+        #pragma warning restore SKEXP0020
     }
 
     /// <summary>
@@ -134,10 +141,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
+        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.OutputTokens;
+        int tokens = completionUsage.CompletionTokens;
 
         return (completion, tokens);
     }
@@ -178,10 +185,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
+        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.OutputTokens;
+        int tokens = completionUsage.CompletionTokens;
 
         return (completion, tokens);
     }
@@ -236,8 +243,14 @@ public class SemanticKernelService
     public async Task<string> SearchProductsAsync(float[] promptVectors, int productMaxResults)
     {
         var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
-        var searchResult = await _productContainer.SearchProductsAsync(promptVectors, options);
-        var resultRecords = await searchResult.Results.ToListAsync();
+        #pragma warning disable SKEXP0020
+        var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
+        #pragma warning restore SKEXP0020
+        var resultRecords = new List<VectorSearchResult<Product>>();
+        await foreach (var result in searchResult.Results)
+        {
+            resultRecords.Add(result);
+        }
 
 
         //Serialize List<Product> to a JSON string to send to OpenAI
@@ -250,11 +263,12 @@ public class SemanticKernelService
         //Read the product container to see if there are any items
         Product? item = null;
         try {
-            
+            #pragma warning disable SKEXP0020
             var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: "26C74104-40BC-4541-8EF5-9892F7F03D72");
             item = await _productContainer.GetAsync(compositeKey);
+            #pragma warning restore SKEXP0020
         }
-        catch (CosmosException ex) when (ex.StatusCode == Systems.Net.HttpStatusCode.NotFound)
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         { }
 
         if (item is null)
@@ -294,8 +308,9 @@ public class SemanticKernelService
         //     item: product,
         //     partitionKey: partitionKey
         // );
-
+        #pragma warning disable SKEXP0020
         return await _productContainer.UpsertAsync(product);
+        #pragma warning restore SKEXP0020
     }
 
     /// <summary>
@@ -310,7 +325,10 @@ public class SemanticKernelService
         //     partitionKey: partitionKey
         // );
 
+        #pragma warning disable SKEXP0020
         var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
         await _productContainer.DeleteAsync(compositeKey);
+        #pragma warning restore SKEXP0020
+        
     }
 }

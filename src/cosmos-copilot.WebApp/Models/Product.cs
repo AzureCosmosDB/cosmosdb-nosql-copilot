@@ -1,6 +1,5 @@
 ﻿using Azure;
-using DistanceFunction = SemanticKernel.Microsoft.Extensions.VectorData.DistanceFunction;
-using IndexKind = SemanticKernel.Microsoft.Extensions.VectorData.IndexKind;
+using Microsoft.Extensions.VectorData;
 
 namespace Cosmos.Copilot.Models
 {
