@@ -44,18 +44,18 @@ builder.AddAzureCosmosClient(
         };
     });
 
-//// Configure OpenAI Aspire integration
-//var openAIEndpoint = builder.Configuration.GetSection(nameof(OpenAi)).GetValue<string>("Endpoint");
-//if (openAIEndpoint is null)
-//{
-//    throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
-//}
-//builder.AddAzureOpenAIClient("openAiConnectionName",
-//    configureSettings: settings =>
-//    {
-//        settings.Endpoint = new Uri(openAIEndpoint);
-//        settings.Credential = new DefaultAzureCredential();
-//    });
+// Configure OpenAI Aspire integration
+var openAIEndpoint = builder.Configuration.GetSection(nameof(OpenAi)).GetValue<string>("Endpoint");
+if (openAIEndpoint is null)
+{
+    throw new ArgumentException($"{nameof(IOptions<OpenAi>)} was not resolved through dependency injection.");
+}
+builder.AddAzureOpenAIClient("openAiConnectionName",
+    configureSettings: settings =>
+    {
+        settings.Endpoint = new Uri(openAIEndpoint);
+        settings.Credential = new DefaultAzureCredential();
+    });
 
 builder.Services.RegisterServices();
 
