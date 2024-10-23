@@ -19,12 +19,13 @@ namespace Cosmos.Copilot.Models
         public string description { get; set; }
         [VectorStoreRecordData]
         public double price { get; set; }
-        [VectorStoreRecordData]
+        //[VectorStoreRecordData]
         public List<Tag> tags { get; set; }
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.DiskAnn)]
-        public float[]? vectors { get; set; }
 
-        public Product(string id, string categoryId, string categoryName, string sku, string name, string description, double price, List<Tag> tags, float[]? vectors = null)
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.DiskAnn)]
+        public ReadOnlyMemory<float>? vectors { get; set; }
+
+        public Product(string id, string categoryId, string categoryName, string sku, string name, string description, double price, List<Tag> tags, ReadOnlyMemory<float>? vectors = null)
         {
             this.id = id;
             this.categoryId = categoryId;

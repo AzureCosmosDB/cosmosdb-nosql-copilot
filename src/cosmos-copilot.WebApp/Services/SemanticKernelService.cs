@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
 using Azure.AI.OpenAI;
 using Azure.AI.Inference;
+using OpenAI;
 
 namespace Cosmos.Copilot.Services;
 
@@ -65,7 +66,7 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(AzureOpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    public SemanticKernelService(CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
         var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
         var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
@@ -81,6 +82,9 @@ public class SemanticKernelService
 
         // _embeddingClient = openAiClient.GetEmbeddingClient(embeddingDeploymentName);
         // _chatClient = openAiClient.GetChatClient(completionDeploymentName);
+
+        TokenCredential credential = new DefaultAzureCredential();
+        var openAiClient = new AzureOpenAIClient(new Uri(openAIOptions.Value.Endpoint), credential);
 
         // Initialize the Semantic Kernel
         var builder = Kernel.CreateBuilder();
@@ -240,7 +244,7 @@ public class SemanticKernelService
         return completion;
     }
 
-    public async Task<string> SearchProductsAsync(float[] promptVectors, int productMaxResults)
+    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
     {
         var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
         #pragma warning disable SKEXP0020
@@ -281,7 +285,7 @@ public class SemanticKernelService
             {
                 json = await response.Content.ReadAsStringAsync();
             }
-            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json);
+            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
 
             foreach (var product in products)
             {
