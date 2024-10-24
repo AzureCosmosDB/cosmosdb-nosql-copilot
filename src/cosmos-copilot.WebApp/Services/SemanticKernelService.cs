@@ -4,14 +4,13 @@ using Cosmos.Copilot.Models;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.VectorData;
-using Azure.Core;
-using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
-using Azure.AI.OpenAI;
 using Azure.AI.Inference;
+using OpenAI;
+using OpenAI.Chat;
 
 namespace Cosmos.Copilot.Services;
 
@@ -65,7 +64,7 @@ public class SemanticKernelService
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(AzureOpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
         var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
         var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
@@ -79,17 +78,14 @@ public class SemanticKernelService
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
 
-        // _embeddingClient = openAiClient.GetEmbeddingClient(embeddingDeploymentName);
-        // _chatClient = openAiClient.GetChatClient(completionDeploymentName);
-
         // Initialize the Semantic Kernel
         var builder = Kernel.CreateBuilder();
         
         //Add Azure OpenAI chat completion service
-        builder.AddAzureOpenAIChatCompletion(completionDeploymentName, openAiClient);
+        builder.AddOpenAIChatCompletion(completionDeploymentName, openAiClient);
 
         //Add Azure OpenAI text embedding generation service
-        builder.AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, openAiClient);
+        builder.AddOpenAITextEmbeddingGeneration(embeddingDeploymentName, openAiClient);
 
         //Add Azure CosmosDB NoSql Vector Store
         builder.Services.AddSingleton<Database>(
@@ -185,10 +181,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.TotalTokenCount;
 
         return (completion, tokens);
     }
@@ -240,7 +236,7 @@ public class SemanticKernelService
         return completion;
     }
 
-    public async Task<string> SearchProductsAsync(float[] promptVectors, int productMaxResults)
+    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
     {
         var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
         #pragma warning disable SKEXP0020
@@ -281,7 +277,7 @@ public class SemanticKernelService
             {
                 json = await response.Content.ReadAsStringAsync();
             }
-            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json);
+            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
 
             foreach (var product in products)
             {

@@ -3,6 +3,7 @@ using Cosmos.Copilot.Options;
 using Cosmos.Copilot.Services;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +30,9 @@ builder.AddAzureCosmosClient(
     },
     clientOptions => {
         clientOptions.ApplicationName = "cosmos-copilot";
-        clientOptions.SerializerOptions = new()
+        clientOptions.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions()
         {
-            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
         clientOptions.CosmosClientTelemetryOptions = new()
         {
