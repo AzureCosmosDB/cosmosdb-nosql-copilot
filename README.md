@@ -1,27 +1,34 @@
 ---
 page_type: sample
 languages:
-- azdeveloper
-- bicep
-- aspx-csharp
-- csharp
-- dockerfile
-- nosql
+  - azdeveloper
+  - bicep
+  - aspx-csharp
+  - csharp
+  - dockerfile
+  - nosql
 products:
-- azure
-- azure-cosmos-db
-- azure-app-service
-- azure-openai
+  - azure
+  - azure-cosmos-db
+  - azure-app-service
+  - azure-openai
 urlFragment: ai-samples
 name: Build Copilot app using Azure Cosmos DB for NoSQL
 description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
 ---
 
-# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel and .NET Aspire
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
 
-This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service built with .NET Aspire and hosted on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]([placeholder](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot))
+[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
 
-## Concepts Covered
+This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+
+## Important Security Notice
+
+This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.
+
+## Features
 
 This application demonstrates the following concepts and how to implement them:
 
@@ -31,81 +38,169 @@ This application demonstrates the following concepts and how to implement them:
 - Manage per-request token consumption and payload sizes for Azure OpenAI Service requests.
 - Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
 - Using the Semantic Kernel SDK for completion and embeddings generation.
-- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM. 
+- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM.
 
 ### Architecture Diagram
 
-![Architecture Diagram](cosmos-nosql-copilot-diagram.png)
+![Architecture Diagram](./media/cosmos-nosql-copilot-diagram.png)
 
 ### User Experience
-![Cosmos DB + ChatGPT user interface](screenshot.png)
 
+![Cosmos Copilot app user interface](./media/screenshot.png)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Azure subscription. [Start free](https://azure.microsoft.com/free)
+- Azure subscription.
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
 - Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
 
+  #### Vector search Preview details
 
-    #### Vector search Preview details
-    This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
-    
-    1. Navigate to your Azure Cosmos DB for NoSQL resource page.
-    1. Select the "Features" pane under the "Settings" menu item.
-    1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
-    1. Read the description to confirm you want to enroll in the preview.
-    1. Select "Enable" to enroll in the Vector Search preview.
+  This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
 
-    #### Checking Azure OpenAI quota limits
+  1. Navigate to your Azure Cosmos DB for NoSQL resource page.
+  1. Select the "Features" pane under the "Settings" menu item.
+  1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
+  1. Read the description to confirm you want to enroll in the preview.
+  1. Select "Enable" to enroll in the Vector Search preview.
 
-    For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  #### Checking Azure OpenAI quota limits
 
-### Instructions
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+
+  #### Azure Subscription Permission Requirements
+
+  This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+
+  - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
+  - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
+
+### GitHub Codespaces
+
+You can run this template virtually by using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+
+1. Open the template (this may take several minutes):
+
+    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot)
+
+2. Open a terminal window
+3. Continue with the [deploying steps](#deployment)
+
+### Local Environment
+
+If you're not using one of the above options for opening the project, then you'll need to:
+
+1. Make sure the following tools are installed:
+
+    * [.NET 8](https://dotnet.microsoft.com/downloads/)
+    * [Git](https://git-scm.com/downloads)
+    * [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+    * [VS Code](https://code.visualstudio.com/Download) or [Visual Studio](https://visualstudio.microsoft.com/downloads/)
+        * If using VS Code, install the [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
+
+2. Download the project code:
+
+    ```shell
+    azd init -t cosmosdb-nosql-copilot
+    ```
+
+3. If you're using Visual Studio, open the src/cosmos-copilot.sln solution file. If you're using VS Code, open the src folder.
+
+7. Continue with the [deploying steps](#deployment).
+
+### VS Code Dev Containers
+
+A related option is VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+
+1. Start Docker Desktop (install it if not already installed)
+2. Open the project:
+
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
+
+3. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window.
+
+4. Continue with the [deploying steps](#deployment)
+
+### Deployment
 
 1. Open a terminal and navigate to where you would like to clone this solution
 
-1. Run the following command to download:
+1. Run the following command to download the solution locally to your machine:
 
-    ```bash
-    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
-    ```
+   ```bash
+   azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
+   ```
 
 1. From the terminal, navigate to the /infra directory in this solution.
 
 1. Log in to AZD.
-    
-    ```bash
-    azd auth login
-    ```
 
-1. Deploy the services to Azure, build your container, and deploy the application.
-    
-    ```bash
-    azd up
-    ```
+   ```bash
+   azd auth login
+   ```
+
+1. Provision the Azure services, build your local solution container, and deploy the application.
+
+   ```bash
+   azd up
+   ```
+
+### Setting up local debugging
+
+When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications.
+
+To modify values for the Quickstarts, locate the value of `UserSecretsId` in the csproj file in the /src folder of this sample and save the value.
+
+```xml
+<PropertyGroup>
+  <UserSecretsId>your-guid-here</UserSecretsId>
+</PropertyGroup>
+```
+
+Locate the secrets.json file and open with a text editor.
+
+- Windows: `C:\Users\<YourUserName>\AppData\Roaming\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`
+- macOS/Linux: `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json`
 
 ### Quickstart
 
-This solution has a number of quickstarts than you can run through to learn about the features in this sample and how to implement them yourself.
+Follow the Quickstarts in this solution to go through the concepts for building RAG Pattern apps and the features in this sample and how to implement them yourself.
 
 Please see [Quickstarts](quickstart.md)
-
 
 ## Clean up
 
 1. Open a terminal and navigate to the /infra directory in this solution.
 
 1. Type azd down
-    
-    ```bash
-    azd down
-    ```
+
+   ```bash
+   azd down
+   ```
+
+## Guidance
+
+### Region Availability
+
+This template uses gpt-4o and text-embedding-3-large models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
+  * We recommend using `eastus2', 'eastus', 'japaneast', 'uksouth', 'northeurope', or 'westus3'
+
+### Costs
+
+You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
+
+As an example in US dollars, here's how the sample is currently built:
+
+Average Monthly Cost:
+* Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): $0.25
+* Azure App Service (B1 Plan): $12.41
+* Azure OpenAI (GPT-4o 1M input/output tokens): $20 (Sample uses 10K tokens)
+* Azure OpenAI (text-3-large): < $0.01 (Sample uses 5K tokens)
 
 ## Resources
 

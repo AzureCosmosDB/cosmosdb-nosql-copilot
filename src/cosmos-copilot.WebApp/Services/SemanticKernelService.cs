@@ -2,9 +2,14 @@
 using Microsoft.SemanticKernel.ChatCompletion;
 using Cosmos.Copilot.Models;
 using Microsoft.SemanticKernel.Embeddings;
-using Azure.Core;
-using Azure.Identity;
+using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+using Microsoft.Extensions.VectorData;
+using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Options;
+using Cosmos.Copilot.Options;
+using Azure.AI.Inference;
+using OpenAI;
 using OpenAI.Chat;
 
 namespace Cosmos.Copilot.Services;
@@ -16,6 +21,11 @@ public class SemanticKernelService
 {
     //Semantic Kernel
     readonly Kernel kernel;
+    #pragma warning disable SKEXP0020
+    private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<Product> _productContainer;
+    #pragma warning restore SKEXP0020
+    private readonly string _productDataSourceURI;
+
 
     /// <summary>
     /// System prompt to send with user prompts to instruct the model for chat session
@@ -49,25 +59,51 @@ public class SemanticKernelService
     /// <summary>
     /// Creates a new instance of the Semantic Kernel.
     /// </summary>
-    /// <param name="endpoint">Endpoint URI.</param>
-    /// <param name="completionDeploymentName">Name of the deployed Azure OpenAI completion model.</param>
-    /// <param name="embeddingDeploymentName">Name of the deployed Azure OpenAI embedding model.</param>
+    /// <param name="skOptions">Options.</param>
     /// <exception cref="ArgumentNullException">Thrown when endpoint, key, or modelName is either null or empty.</exception>
     /// <remarks>
     /// This constructor will validate credentials and create a Semantic Kernel instance.
     /// </remarks>
-    public SemanticKernelService(string endpoint, string completionDeploymentName, string embeddingDeploymentName)
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
+        var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
+        var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
+
+        var databaseName = cosmosOptions.Value.Database;
+        var productContainerName = cosmosOptions.Value.ProductContainer;
+        var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
+
         ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
         ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
+        ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
 
-        TokenCredential credential = new DefaultAzureCredential();
         // Initialize the Semantic Kernel
-        kernel = Kernel.CreateBuilder()
-            .AddAzureOpenAIChatCompletion(completionDeploymentName, endpoint, credential)
-            .AddAzureOpenAITextEmbeddingGeneration(deploymentName: embeddingDeploymentName, endpoint: endpoint, credential: credential, dimensions: 1536)
-            .Build();
+        var builder = Kernel.CreateBuilder();
+        
+        //Add Azure OpenAI chat completion service
+        builder.AddOpenAIChatCompletion(completionDeploymentName, openAiClient);
+
+        //Add Azure OpenAI text embedding generation service
+        builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
+
+        //Add Azure CosmosDB NoSql Vector Store
+        builder.Services.AddSingleton<Database>(
+            sp =>
+            {
+                var client = cosmosClient;
+                return client.GetDatabase(databaseName);
+            });
+        #pragma warning disable SKEXP0020
+        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product>{ PartitionKeyPropertyName = "categoryId" };
+        builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
+        #pragma warning restore SKEXP0020
+        kernel = builder.Build();
+
+        _productDataSourceURI = productDataSourceURI;
+        #pragma warning disable SKEXP0020
+        _productContainer = (AzureCosmosDBNoSQLVectorStoreRecordCollection<Product>)kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>>();
+        #pragma warning restore SKEXP0020
     }
 
     /// <summary>
@@ -101,10 +137,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
+        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.OutputTokens;
+        int tokens = completionUsage.CompletionTokens;
 
         return (completion, tokens);
     }
@@ -116,10 +152,10 @@ public class SemanticKernelService
     /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
     /// <param name="products">List of Product objects containing vector search results to send to the model.</param>
     /// <returns>Generated response along with tokens used to generate it.</returns>
-    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, List<Product> products)
+    public async Task<(string completion, int tokens)> GetRagCompletionAsync(string sessionId, List<Message> contextWindow, string promptText, int productMaxResults)
     {
-        //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonConvert.SerializeObject(products);
+        float[] promptVectors = await GetEmbeddingsAsync(promptText);
+        string productsString = await SearchProductsAsync(promptVectors, productMaxResults);
 
         var skChatHistory = new ChatHistory();
         skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + productsString);
@@ -148,7 +184,7 @@ public class SemanticKernelService
         ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.OutputTokens;
+        int tokens = completionUsage.TotalTokenCount;
 
         return (completion, tokens);
     }
@@ -198,5 +234,97 @@ public class SemanticKernelService
         string completion = result.Items[0].ToString()!;
 
         return completion;
+    }
+
+    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
+    {
+        var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
+        #pragma warning disable SKEXP0020
+        var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
+        #pragma warning restore SKEXP0020
+        var resultRecords = new List<VectorSearchResult<Product>>();
+        await foreach (var result in searchResult.Results)
+        {
+            resultRecords.Add(result);
+        }
+
+
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonConvert.SerializeObject(resultRecords);
+        return productsString;
+    }
+
+    public async Task LoadProductDataAsync()
+    {
+        //Read the product container to see if there are any items
+        Product? item = null;
+        try {
+            #pragma warning disable SKEXP0020
+            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "40424a74-42d0-45e1-9611-028afddfb8d6", partitionKey: "2a320d1a-893f-44db-a691-5fd46147df42");
+            item = await _productContainer.GetAsync(compositeKey);
+            #pragma warning restore SKEXP0020
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { }
+
+        if (item is null)
+        {
+            string json = "";
+            string jsonFilePath = _productDataSourceURI;
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+            if(response.IsSuccessStatusCode)
+            {
+                json = await response.Content.ReadAsStringAsync();
+            }
+            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
+
+            foreach (var product in products)
+            {
+                try {
+                    await InsertProductAsync(product);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Upserts a new product.
+    /// </summary>
+    /// <param name="product">Product item to create or update.</param>
+    /// <returns>Id of the newly created product item.</returns>
+    public async Task<string> InsertProductAsync(Product product)
+    {
+        // PartitionKey partitionKey = new(product.categoryId);
+        // return await _productContainer.CreateItemAsync<Product>(
+        //     item: product,
+        //     partitionKey: partitionKey
+        // );
+        #pragma warning disable SKEXP0020
+        return await _productContainer.UpsertAsync(product);
+        #pragma warning restore SKEXP0020
+    }
+
+    /// <summary>
+    /// Delete a product.
+    /// </summary>
+    /// <param name="product">Product item to delete.</param>
+    public async Task DeleteProductAsync(Product product)
+    {
+        // PartitionKey partitionKey = new(product.categoryId);
+        // await _productContainer.DeleteItemAsync<Product>(
+        //     id: product.id,
+        //     partitionKey: partitionKey
+        // );
+
+        #pragma warning disable SKEXP0020
+        var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
+        await _productContainer.DeleteAsync(compositeKey);
+        #pragma warning restore SKEXP0020
+        
     }
 }

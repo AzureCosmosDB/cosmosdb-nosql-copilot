@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "cosmosdb1": {
-      "type": "cosmosdb",
-      "connectionId": "ConnectionStrings:cosmos",
-      "dynamicId": null
-    }
-  }
-}

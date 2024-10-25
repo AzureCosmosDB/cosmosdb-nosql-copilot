@@ -1,4 +1,6 @@
 ﻿using Cosmos.Copilot.Models;
+using Cosmos.Copilot.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.ML.Tokenizers;
 
 namespace Cosmos.Copilot.Services;
@@ -7,17 +9,22 @@ public class ChatService
 {
 
     private readonly CosmosDbService _cosmosDbService;
-    private readonly OpenAiService _openAiService;
+    // private readonly OpenAiService _openAiService;
     private readonly SemanticKernelService _semanticKernelService;
     private readonly int _maxConversationTokens;
     private readonly double _cacheSimilarityScore;
     private readonly int _productMaxResults;
 
-    public ChatService(CosmosDbService cosmosDbService, OpenAiService openAiService, SemanticKernelService semanticKernelService, string maxConversationTokens, string cacheSimilarityScore, string productMaxResults)
+    public ChatService(CosmosDbService cosmosDbService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
     {
         _cosmosDbService = cosmosDbService;
-        _openAiService = openAiService;
+        // TODO: OpenAIService is not being used anywhere, clean up code once testing is done.
+        // _openAiService = openAiService;
         _semanticKernelService = semanticKernelService;
+
+        var maxConversationTokens = chatOptions.Value.MaxConversationTokens;
+        var cacheSimilarityScore = chatOptions.Value.CacheSimilarityScore;
+        var productMaxResults = chatOptions.Value.ProductMaxResults;
 
         _maxConversationTokens = Int32.TryParse(maxConversationTokens, out _maxConversationTokens) ? _maxConversationTokens : 100;
         _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
@@ -26,7 +33,7 @@ public class ChatService
 
     public async Task InitializeAsync()
     {
-        await _cosmosDbService.LoadProductDataAsync();
+        await _semanticKernelService.LoadProductDataAsync();
     }
 
     /// <summary>
@@ -46,7 +53,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDbService.GetSessionMessagesAsync(tenantId,userId, sessionId); ;
+        return await _cosmosDbService.GetSessionMessagesAsync(tenantId,userId, sessionId);
     }
 
     /// <summary>
@@ -132,13 +139,13 @@ public class ChatService
             // RAG Pattern embeddings generation
             // Generate embeddings for the user prompt
             //float[] promptVectors = await _openAiService.GetEmbeddingsAsync(promptText);
-            float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
-            List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
+            // float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(promptText);
+            // List<Product> products = await _cosmosDbService.SearchProductsAsync(promptVectors, _productMaxResults);
 
             // RAG Pattern completions
             //Generate a completion and tokens used from current context window and vector search results
             //(chatMessage.Completion, chatMessage.CompletionTokens) = await _openAiService.GetRagCompletionAsync(sessionId, contextWindow, products);
-            (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, products);
+            (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(sessionId, contextWindow, promptText, _productMaxResults);
 
             //Cache the prompts in the current context window and their vectors with the generated completion
             await CachePutAsync(cachePrompts, cacheVectors, chatMessage.Completion);

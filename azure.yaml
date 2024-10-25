@@ -19,7 +19,7 @@ hooks:
         shell: sh
         continueOnError: false
         interactive: true
-        run: ./infra/azd-hooks/preprovision.sh
+        run: chmod +x ./infra/azd-hooks/preprovision.sh
   postprovision:
     windows:
       run: |
@@ -27,9 +27,6 @@ hooks:
             'OpenAi:Endpoint' = $env:AZURE_OPENAI_ACCOUNT_ENDPOINT
             'OpenAi:CompletionDeploymentName' = $env:AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME
             'OpenAi:EmbeddingDeploymentName' = $env:AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME
-            'SemanticKernel:Endpoint' = $env:AZURE_OPENAI_ACCOUNT_ENDPOINT
-            'SemanticKernel:CompletionDeploymentName' = $env:AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME
-            'SemanticKernel:EmbeddingDeploymentName' = $env:AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME
             'CosmosDb:Endpoint' = $env:AZURE_COSMOS_DB_ENDPOINT
             'CosmosDb:Database' = $env:AZURE_COSMOS_DB_DATABASE_NAME
             'CosmosDb:ChatContainer' = $env:AZURE_COSMOS_DB_CHAT_CONTAINER_NAME
@@ -50,9 +47,6 @@ hooks:
             --arg openAiEndpoint $AZURE_OPENAI_ACCOUNT_ENDPOINT \
             --arg openAiCompletionDeploymentName $AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME \
             --arg openAiEmbeddingDeploymentName $AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME \
-            --arg semanticKernelEndpoint $AZURE_OPENAI_ACCOUNT_ENDPOINT \
-            --arg semanticKernelCompletionDeploymentName $AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME \
-            --arg semanticKernelEmbeddingDeploymentName $AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME \
             --arg cosmosDbEndpoint $AZURE_COSMOS_DB_ENDPOINT \
             --arg cosmosDbDatabase $AZURE_COSMOS_DB_DATABASE_NAME \
             --arg cosmosDbChatContainer $AZURE_COSMOS_DB_CHAT_CONTAINER_NAME \
@@ -62,7 +56,7 @@ hooks:
             --arg maxConversationTokens $AZURE_CHAT_MAX_CONVERSATION_TOKENS \
             --arg cacheSimilarityScore $AZURE_CHAT_CACHE_SIMILARITY_SCORE \
             --arg productMaxResults $AZURE_CHAT_PRODUCT_MAX_RESULTS \
-            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"SemanticKernel:Endpoint":$semanticKernelEndpoint,"SemanticKernel:CompletionDeploymentName":$semanticKernelCompletionDeploymentName,"SemanticKernel:EmbeddingDeploymentName":$semanticKernelEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"CosmosDb:ProductDataSource":$cosmosDbProductDataSourceURI,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
+            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"CosmosDb:ProductDataSource":$cosmosDbProductDataSourceURI,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
         echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.csproj
       shell: sh
       continueOnError: false
