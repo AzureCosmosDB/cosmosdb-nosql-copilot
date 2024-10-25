@@ -66,7 +66,7 @@ public class SemanticKernelService
         // Initialize the Semantic Kernel
         kernel = Kernel.CreateBuilder()
             .AddAzureOpenAIChatCompletion(completionDeploymentName, endpoint, credential)
-            .AddAzureOpenAITextEmbeddingGeneration(embeddingDeploymentName, endpoint, credential)
+            .AddAzureOpenAITextEmbeddingGeneration(deploymentName: embeddingDeploymentName, endpoint: endpoint, credential: credential, dimensions: 1536)
             .Build();
     }
 

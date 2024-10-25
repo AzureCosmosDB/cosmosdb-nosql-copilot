@@ -66,7 +66,7 @@ public class CosmosDbService
         Product? item = null;
         try 
         {
-            item = await _productContainer.ReadItemAsync<Product>(id: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
+            item = await _productContainer.ReadItemAsync<Product>(id: "40424a74-42d0-45e1-9611-028afddfb8d6", partitionKey: new PartitionKey("2a320d1a-893f-44db-a691-5fd46147df42"));
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         { }
@@ -82,19 +82,21 @@ public class CosmosDbService
 
             List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
 
+            List<Task> tasks = new List<Task>();
 
+            // Create a timer to measure how long it takes to load the data
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
 
             foreach (var product in products)
             {
-                try
-                {
-                    await InsertProductAsync(product);
-                }
-                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-                {
-                    Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
-                }
+                tasks.Add(InsertProductAsync(product));
             }
+
+            await Task.WhenAll(tasks);
+
+            stopwatch.Stop();
+            Console.WriteLine($"Loaded {products.Count} products in {stopwatch.ElapsedMilliseconds * 1000} seconds");
         }
     }
     /// <summary>
@@ -313,13 +315,34 @@ public class CosmosDbService
     /// </summary>
     /// <param name="product">Product item to create or update.</param>
     /// <returns>Newly created product item.</returns>
-    public async Task<Product> InsertProductAsync(Product product)
+    public async Task<ItemResponse<Product>> InsertProductAsync(Product product)
     {
-        PartitionKey partitionKey = new(product.categoryId);
-        return await _productContainer.CreateItemAsync<Product>(
-            item: product,
-            partitionKey: partitionKey
-        );
+        ItemResponse<Product>? response = null;
+        try
+        {
+            PartitionKey partitionKey = new(product.categoryId);
+            response = await _productContainer.CreateItemAsync<Product>(
+                item: product,
+                partitionKey: partitionKey
+            );
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {   
+            response!.Headers.TryGetValue("x-ms-retry-after", out string retryAfterMs);
+            if (int.TryParse(retryAfterMs, out int retryAfter))
+            {
+                Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}, retry in {retryAfter} ms");
+                await Task.Delay(TimeSpan.FromMilliseconds(retryAfter));
+                return await InsertProductAsync(product);
+            }
+        }
+        catch (CosmosException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
+            return response!;
+        }
+
+        return response;
     }
 
     /// <summary>
@@ -343,22 +366,20 @@ public class CosmosDbService
     public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
     {
         List<Product> results = new();
-        
+
         //Return only the properties we need to generate a completion. Often don't need id values.
         string queryText = $"""
             SELECT 
-                Top {productMaxResults} 
-                p.categoryName, p.sku, p.name, p.description, p.price, p.tags
-            FROM 
-                (SELECT s.categoryName, s.sku, s.name, s.description, s.price, s.tags, 
-                VectorDistance(s.vectors, @vectors, false) as similarityScore FROM s) 
-            p 
-            ORDER BY 
-                p.similarityScore desc
+                Top @maxResults
+                c.categoryName, c.sku, c.name, c.description, c.price, 
+                c.tags, c.reviews, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c 
+            ORDER BY VectorDistance(c.vectors, @vectors)
             """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
+            .WithParameter("@maxResults", productMaxResults)
             .WithParameter("@vectors", vectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
@@ -388,9 +409,13 @@ public class CosmosDbService
         string cacheResponse = "";
 
         string queryText = $"""
-            SELECT Top 1 x.prompt, x.completion, x.similarityScore 
-                FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
-            x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
+            SELECT Top 1 
+                c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
+            FROM c  
+            WHERE 
+                VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY 
+                VectorDistance(c.vectors, @vectors)
             """;
 
         var queryDef = new QueryDefinition(

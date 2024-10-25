@@ -12,9 +12,10 @@ namespace Cosmos.Copilot.Models
         public string description { get; set; }
         public double price { get; set; }
         public List<Tag> tags { get; set; }
+        public List<Review> reviews { get; set; }
         public float[]? vectors { get; set; }
 
-        public Product(string id, string categoryId, string categoryName, string sku, string name, string description, double price, List<Tag> tags, float[]? vectors = null)
+        public Product(string id, string categoryId, string categoryName, string sku, string name, string description, double price, List<Tag> tags, List<Review> reviews, float[]? vectors = null)
         {
             this.id = id;
             this.categoryId = categoryId;
@@ -24,6 +25,7 @@ namespace Cosmos.Copilot.Models
             this.description = description;
             this.price = price;
             this.tags = tags;
+            this.reviews = reviews;
             this.vectors = vectors;
         }
 
@@ -37,6 +39,20 @@ namespace Cosmos.Copilot.Models
         {
             this.id = id;
             this.name = name;
+        }
+    }
+
+    public class Review
+    {
+        public string customer { get; set; }
+        public int rating { get; set; }
+        public string review { get; set; }
+
+        public Review(string customer, int rating, string review)
+        {
+            this.customer = customer;
+            this.rating = rating;
+            this.review = review;
         }
     }
 }
