@@ -5,7 +5,7 @@ using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.VectorData;
 using Microsoft.Azure.Cosmos;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
 using Azure.AI.Inference;
@@ -85,7 +85,7 @@ public class SemanticKernelService
         builder.AddOpenAIChatCompletion(completionDeploymentName, openAiClient);
 
         //Add Azure OpenAI text embedding generation service
-        builder.AddOpenAITextEmbeddingGeneration(embeddingDeploymentName, openAiClient);
+        builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
 
         //Add Azure CosmosDB NoSql Vector Store
         builder.Services.AddSingleton<Database>(
@@ -250,7 +250,7 @@ public class SemanticKernelService
 
 
         //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonConvert.SerializeObject(resultRecords);
+        string productsString = JsonSerializer.Serialize(resultRecords);
         return productsString;
     }
 
@@ -260,7 +260,7 @@ public class SemanticKernelService
         Product? item = null;
         try {
             #pragma warning disable SKEXP0020
-            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: "26C74104-40BC-4541-8EF5-9892F7F03D72");
+            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "40424a74-42d0-45e1-9611-028afddfb8d6", partitionKey: "2a320d1a-893f-44db-a691-5fd46147df42");
             item = await _productContainer.GetAsync(compositeKey);
             #pragma warning restore SKEXP0020
         }
@@ -277,7 +277,7 @@ public class SemanticKernelService
             {
                 json = await response.Content.ReadAsStringAsync();
             }
-            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
+            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
 
             foreach (var product in products)
             {

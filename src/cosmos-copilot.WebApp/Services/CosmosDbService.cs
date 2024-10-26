@@ -389,17 +389,14 @@ public class CosmosDbService
         string cacheResponse = "";
 
         string queryText = $"""
-            SELECT Top 1 c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
+            SELECT Top 1 
+                c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
             FROM c  
-            WHERE VectorDistance(c.vectors, @vectors) > @similarityScore 
-            ORDER BY VectorDistance(c.vectors, @vectors)
+            WHERE 
+                VectorDistance(c.vectors, @vectors) > @similarityScore 
+            ORDER BY 
+                VectorDistance(c.vectors, @vectors)
             """;
-
-        //string queryText = $"""
-        //    SELECT Top 1 x.prompt, x.completion, x.similarityScore 
-        //        FROM (SELECT c.prompt, c.completion, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) 
-        //    x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc
-        //    """;
 
         var queryDef = new QueryDefinition(
                 query: queryText)
