@@ -27,7 +27,6 @@ builder.AddAzureCosmosClient(
         settings.AccountEndpoint = new Uri(cosmosEndpoint);
         settings.Credential = new DefaultAzureCredential();
         settings.DisableTracing = false;
-        settings.AccountEndpoint = new Uri(cosmosEndpoint!);
     },
     clientOptions => {
         clientOptions.ApplicationName = "cosmos-copilot";

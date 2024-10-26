@@ -5,7 +5,7 @@ using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.VectorData;
 using Microsoft.Azure.Cosmos;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
 using Azure.AI.Inference;
@@ -250,7 +250,7 @@ public class SemanticKernelService
 
 
         //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonConvert.SerializeObject(resultRecords);
+        string productsString = JsonSerializer.Serialize(resultRecords);
         return productsString;
     }
 
@@ -277,7 +277,7 @@ public class SemanticKernelService
             {
                 json = await response.Content.ReadAsStringAsync();
             }
-            List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
+            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
 
             foreach (var product in products)
             {
