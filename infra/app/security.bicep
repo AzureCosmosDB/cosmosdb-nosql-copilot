@@ -51,7 +51,7 @@ module openaiAppAssignment '../core/security/role/assignment.bicep' = if (!empty
       '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
     ) // Cognitive Services OpenAI User built-in role
     principalId: appPrincipalId // Principal to assign role
-    principalType: 'None' // Don't specify the principal type
+    principalType: 'ServicePrincipal' // Specify the principal type // was 'None' but this appears to cause issues
   }
 }
 
