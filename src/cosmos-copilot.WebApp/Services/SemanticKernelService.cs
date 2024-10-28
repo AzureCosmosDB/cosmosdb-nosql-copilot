@@ -260,7 +260,7 @@ public class SemanticKernelService
         Product? item = null;
         try {
             #pragma warning disable SKEXP0020
-            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "40424a74-42d0-45e1-9611-028afddfb8d6", partitionKey: "2a320d1a-893f-44db-a691-5fd46147df42");
+            var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: "d4e4f47b-fcd1-4cb0-84fc-db0948d26e9a", partitionKey: "598aede4-8b86-466b-ba48-3038a9a3b5fc");
             item = await _productContainer.GetAsync(compositeKey);
             #pragma warning restore SKEXP0020
         }
