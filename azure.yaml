@@ -5,7 +5,7 @@ metadata:
   template: cosmos-copilot
 services:
   web:
-    project: ./src/cosmos-copilot.AppHost/cosmos-copilot.AppHost.csproj
+    project: ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
     language: csharp
     host: appservice
 hooks:
@@ -37,7 +37,7 @@ hooks:
             'Chat:CacheSimilarityScore' = $env:AZURE_CHAT_CACHE_SIMILARITY_SCORE
             'Chat:ProductMaxResults' = $env:AZURE_CHAT_PRODUCT_MAX_RESULTS
         }
-        $userSecrets | ConvertTo-Json | dotnet user-secrets set --project ./src/cosmos-copilot.AppHost/cosmos-copilot.AppHost.csproj
+        $userSecrets | ConvertTo-Json | dotnet user-secrets set --project ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
       shell: pwsh
       continueOnError: false
       interactive: true
@@ -57,7 +57,7 @@ hooks:
             --arg cacheSimilarityScore $AZURE_CHAT_CACHE_SIMILARITY_SCORE \
             --arg productMaxResults $AZURE_CHAT_PRODUCT_MAX_RESULTS \
             '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"CosmosDb:ProductDataSource":$cosmosDbProductDataSourceURI,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
-        echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.AppHost/cosmos-copilot.AppHost.csproj
+        echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
       shell: sh
       continueOnError: false
       interactive: true
