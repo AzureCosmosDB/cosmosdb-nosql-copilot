@@ -38,7 +38,7 @@ var tags = {
 }
 
 var chatSettings = {
-  maxConversationTokens: '100'
+  maxConversationTokens: '10000'
   cacheSimilarityScore: '0.99'
   productMaxResults: '10'
 }
