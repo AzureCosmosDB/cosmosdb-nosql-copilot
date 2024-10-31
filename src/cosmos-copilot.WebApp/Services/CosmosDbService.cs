@@ -2,7 +2,6 @@
 using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -48,7 +47,6 @@ public class CosmosDbService
         Container cacheContainer = database.GetContainer(cacheContainerName)!;
         Container productContainer = database.GetContainer(productContainerName)!;
 
-
         _chatContainer = chatContainer ??
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
 
@@ -59,45 +57,6 @@ public class CosmosDbService
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
     }
 
-    // TODO: Moved this code to SemanticKernelService, will clean up once testing is done. 
-    // public async Task LoadProductDataAsync()
-    // {
-
-    //     //Read the product container to see if there are any items
-    //     Product? item = null;
-    //     try 
-    //     {
-    //         item = await _productContainer.ReadItemAsync<Product>(id: "027D0B9A-F9D9-4C96-8213-C8546C4AAE71", partitionKey: new PartitionKey("26C74104-40BC-4541-8EF5-9892F7F03D72"));
-    //     }
-    //     catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-    //     { }
-
-    //     if (item is null)
-    //     {
-    //         string json = "";
-    //         string jsonFilePath = _productDataSourceURI; //URI to the vectorized product JSON file
-    //         HttpClient client = new HttpClient();
-    //         HttpResponseMessage response = await client.GetAsync(jsonFilePath);
-    //         if(response.IsSuccessStatusCode)
-    //             json = await response.Content.ReadAsStringAsync();
-
-    //         List<Product> products = JsonConvert.DeserializeObject<List<Product>>(json)!;
-
-
-
-    //         foreach (var product in products)
-    //         {
-    //             try
-    //             {
-    //                 await InsertProductAsync(product);
-    //             }
-    //             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-    //             {
-    //                 Console.WriteLine($"Error: {ex.Message}, Product Name: {product.name}");
-    //             }
-    //         }
-    //     }
-    // }
     /// <summary>
     /// Helper function to generate a full or partial hierarchical partition key based on parameters.
     /// </summary>
@@ -137,6 +96,7 @@ public class CosmosDbService
             return partitionKey;
         }
     }
+
     /// <summary>
     /// Creates a new chat session.
     /// </summary>
@@ -237,7 +197,7 @@ public class CosmosDbService
         );
     }
 
-    /// <summary>
+        /// <summary>
     /// Returns an existing chat session.
     /// </summary>
     /// <param name="tenantId">Id of Tenant.</param>
@@ -309,83 +269,16 @@ public class CosmosDbService
         await batch.ExecuteAsync();
     }
 
-    // TODO: Moved this code to SemanticKernelService, will clean up once testing is done. 
-    // /// <summary>
-    // /// Upserts a new product.
-    // /// </summary>
-    // /// <param name="product">Product item to create or update.</param>
-    // /// <returns>Newly created product item.</returns>
-    // public async Task<Product> InsertProductAsync(Product product)
-    // {
-    //     PartitionKey partitionKey = new(product.categoryId);
-    //     return await _productContainer.CreateItemAsync<Product>(
-    //         item: product,
-    //         partitionKey: partitionKey
-    //     );
-    // }
-
-    // /// <summary>
-    // /// Delete a product.
-    // /// </summary>
-    // /// <param name="product">Product item to delete.</param>
-    // public async Task DeleteProductAsync(Product product)
-    // {
-    //     PartitionKey partitionKey = new(product.categoryId);
-    //     await _productContainer.DeleteItemAsync<Product>(
-    //         id: product.id,
-    //         partitionKey: partitionKey
-    //     );
-    // }
-
-    // /// <summary>
-    // /// Search vectors for similar products.
-    // /// </summary>
-    // /// <param name="product">Product item to delete.</param>
-    // /// <returns>Array of similar product items.</returns>
-    // public async Task<List<Product>> SearchProductsAsync(float[] vectors, int productMaxResults)
-    // {
-    //     List<Product> results = new();
-
-    //     //Return only the properties we need to generate a completion. Often don't need id values.
-
-    //     //{productMaxResults}
-    //     string queryText = $"""
-    //         SELECT 
-    //             Top @maxResults
-    //             c.categoryName, c.sku, c.name, c.description, c.price, c.tags, VectorDistance(c.vectors, @vectors) as similarityScore
-    //         FROM c 
-    //         ORDER BY VectorDistance(c.vectors, @vectors)
-    //         """;
-
-    //     var queryDef = new QueryDefinition(
-    //             query: queryText)
-    //         .WithParameter("@maxResults", productMaxResults)
-    //         .WithParameter("@vectors", vectors);
-
-    //     using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(queryDefinition: queryDef);
-
-    //     while (resultSet.HasMoreResults)
-    //     {
-    //         FeedResponse<Product> response = await resultSet.ReadNextAsync();
-
-    //         results.AddRange(response);
-    //     }
-
-    //     return results;
-    // }
-
-
     /// <summary>
     /// Find a cache item.
     /// Select Top 1 to get only get one result.
-    /// OrderBy DESC to return the highest similary score first.
+    /// OrderBy DESC to return the highest similarity score first.
     /// Use a subquery to get the similarity score so we can then use in a WHERE clause
     /// </summary>
     /// <param name="vectors">Vectors to do the semantic search in the cache.</param>
     /// <param name="similarityScore">Value to determine how similar the vectors. >0.99 is exact match.</param>
     public async Task<string> GetCacheAsync(float[] vectors, double similarityScore)
     {
-
         string cacheResponse = "";
 
         string queryText = $"""
@@ -427,7 +320,6 @@ public class CosmosDbService
     /// <param name="completion">Text value of the previously generated response to return to the user.</param>
     public async Task CachePutAsync(CacheItem cacheItem)
     {
-
         await _cacheContainer.UpsertItemAsync<CacheItem>(item: cacheItem);
     }
 
@@ -438,7 +330,6 @@ public class CosmosDbService
     public async Task CacheRemoveAsync(float[] vectors)
     {
         double similarityScore = 0.99;
-        //string queryText = "SELECT Top 1 c.id FROM (SELECT c.id, VectorDistance(c.vectors, @vectors, false) as similarityScore FROM c) x WHERE x.similarityScore > @similarityScore ORDER BY x.similarityScore desc";
 
         string queryText = $"""
             SELECT Top 1 c.id
@@ -471,7 +362,6 @@ public class CosmosDbService
     /// </summary>
     public async Task CacheClearAsync()
     {
-
         string queryText = "SELECT c.id FROM c";
 
         var queryDef = new QueryDefinition(query: queryText);

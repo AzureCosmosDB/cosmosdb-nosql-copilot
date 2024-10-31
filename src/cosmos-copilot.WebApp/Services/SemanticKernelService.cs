@@ -134,7 +134,6 @@ public class SemanticKernelService
             }
         };
 
-
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
         CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
@@ -160,7 +159,6 @@ public class SemanticKernelService
         var skChatHistory = new ChatHistory();
         skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + productsString);
         
-
         foreach (var message in contextWindow)
         {
             skChatHistory.AddUserMessage(message.Prompt);
@@ -177,7 +175,6 @@ public class SemanticKernelService
                 { "MaxTokens", 1000  }
             }
         };
-
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
@@ -212,8 +209,6 @@ public class SemanticKernelService
     /// <returns>Summarization response from the OpenAI completion model deployment.</returns>
     public async Task<string> SummarizeConversationAsync(string conversation)
     {
-        //return await summarizePlugin.SummarizeConversationAsync(conversation, kernel);
-
         var skChatHistory = new ChatHistory();
         skChatHistory.AddSystemMessage(_summarizePrompt);
         skChatHistory.AddUserMessage(conversation);
@@ -227,7 +222,6 @@ public class SemanticKernelService
                 { "MaxTokens", 100 }
             }
         };
-
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
@@ -247,7 +241,6 @@ public class SemanticKernelService
         {
             resultRecords.Add(result);
         }
-
 
         //Serialize List<Product> to a JSON string to send to OpenAI
         string productsString = JsonSerializer.Serialize(resultRecords);
@@ -299,11 +292,6 @@ public class SemanticKernelService
     /// <returns>Id of the newly created product item.</returns>
     public async Task<string> InsertProductAsync(Product product)
     {
-        // PartitionKey partitionKey = new(product.categoryId);
-        // return await _productContainer.CreateItemAsync<Product>(
-        //     item: product,
-        //     partitionKey: partitionKey
-        // );
         #pragma warning disable SKEXP0020
         return await _productContainer.UpsertAsync(product);
         #pragma warning restore SKEXP0020
@@ -315,16 +303,9 @@ public class SemanticKernelService
     /// <param name="product">Product item to delete.</param>
     public async Task DeleteProductAsync(Product product)
     {
-        // PartitionKey partitionKey = new(product.categoryId);
-        // await _productContainer.DeleteItemAsync<Product>(
-        //     id: product.id,
-        //     partitionKey: partitionKey
-        // );
-
         #pragma warning disable SKEXP0020
         var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
         await _productContainer.DeleteAsync(compositeKey);
         #pragma warning restore SKEXP0020
-        
     }
 }
