@@ -105,7 +105,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        //Create a message object for the new User Prompt and calculate the tokens for the prompt
+        //Create a message object for the new user prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
 
         //Grab context window from the conversation history up to the maximum configured tokens
@@ -122,7 +122,7 @@ public class ChatService
             chatMessage.CompletionTokens = 0;
 
             //Persist the prompt/completion, update the session tokens
-            await UpdateSessionAndMessage( tenantId,  userId, sessionId, chatMessage);
+            await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
 
             return chatMessage;
         }
@@ -141,7 +141,7 @@ public class ChatService
         }
 
         //Persist the prompt/completion, update the session tokens
-        await UpdateSessionAndMessage( tenantId, userId, sessionId, chatMessage);
+        await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
 
         return chatMessage;
     }
@@ -176,7 +176,6 @@ public class ChatService
         contextWindow = contextWindow.Reverse<Message>().ToList();
 
         return contextWindow;
-
     }
 
     /// <summary>
@@ -237,7 +236,6 @@ public class ChatService
 
         //Insert new message and Update session in a transaction
         await _cosmosDbService.UpsertSessionBatchAsync( tenantId,  userId, session, chatMessage);
-
     }
 
     /// <summary>
@@ -245,11 +243,9 @@ public class ChatService
     /// </summary>
     private int GetTokens(string userPrompt)
     {
-
         Tokenizer _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-3.5-turbo");
 
         return _tokenizer.CountTokens(userPrompt);
-
     }
 
     /// <summary>

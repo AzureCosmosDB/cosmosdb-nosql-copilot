@@ -221,7 +221,6 @@ public class CosmosDbService
     /// <param name="messages">Chat message and session items to create or replace.</param>
     public async Task UpsertSessionBatchAsync(string tenantId, string userId, params dynamic[] messages)
     {
-
         //Make sure items are all in the same partition
         if (messages.Select(m => m.SessionId).Distinct().Count() > 1)
         {
@@ -245,7 +244,6 @@ public class CosmosDbService
     /// <param name="tenantId">Id of Tenant.</param>
     /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
-
     public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
     {
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
@@ -266,6 +264,7 @@ public class CosmosDbService
                 );
             }
         }
+
         await batch.ExecuteAsync();
     }
 
@@ -278,7 +277,7 @@ public class CosmosDbService
     /// <param name="vectors">Vectors to do the semantic search in the cache.</param>
     /// <param name="similarityScore">Value to determine how similar the vectors. >0.99 is exact match.</param>
     public async Task<string> GetCacheAsync(float[] vectors, double similarityScore)
-    {
+    {   
         string cacheResponse = "";
 
         string queryText = $"""
