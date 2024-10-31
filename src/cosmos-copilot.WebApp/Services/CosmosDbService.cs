@@ -197,7 +197,7 @@ public class CosmosDbService
         );
     }
 
-        /// <summary>
+    /// <summary>
     /// Returns an existing chat session.
     /// </summary>
     /// <param name="tenantId">Id of Tenant.</param>

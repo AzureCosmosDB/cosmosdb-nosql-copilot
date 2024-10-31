@@ -106,10 +106,10 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(sessionId);
 
         //Create a message object for the new user prompt and calculate the tokens for the prompt
-        Message chatMessage = await CreateChatMessageAsync(tenantId,  userId, sessionId, promptText);
+        Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
 
         //Grab context window from the conversation history up to the maximum configured tokens
-        List<Message> contextWindow = await GetChatSessionContextWindow( tenantId,  userId, sessionId);
+        List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
 
         //Perform a cache search to see if this prompt has already been used in the same context window as this conversation
         (string cachePrompts, float[] cacheVectors, string cacheResponse) = await GetCacheAsync(contextWindow);
