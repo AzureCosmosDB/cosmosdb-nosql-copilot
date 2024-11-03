@@ -9,7 +9,6 @@ public class ChatService
 {
 
     private readonly CosmosDbService _cosmosDbService;
-    // private readonly OpenAiService _openAiService;
     private readonly SemanticKernelService _semanticKernelService;
     private readonly int _maxContextWindow;
     private readonly double _cacheSimilarityScore;
@@ -20,8 +19,6 @@ public class ChatService
     public ChatService(CosmosDbService cosmosDbService, SemanticKernelService semanticKernelService, IOptions<Chat> chatOptions)
     {
         _cosmosDbService = cosmosDbService;
-        // TODO: OpenAIService is not being used anywhere, clean up code once testing is done.
-        // _openAiService = openAiService;
         _semanticKernelService = semanticKernelService;
 
         var maxContextWindow = chatOptions.Value.MaxContexWindow;
@@ -171,7 +168,6 @@ public class ChatService
         string conversationText = string.Join(" ", messages.Select(m => m.Prompt + " " + m.Completion));
 
         //Send to OpenAI to summarize the conversation
-        //string completionText = await _openAiService.SummarizeAsync(sessionId, conversationText);
         string completionText = await _semanticKernelService.SummarizeConversationAsync(conversationText);
 
         await RenameChatSessionAsync( tenantId,  userId, sessionId, completionText);
@@ -213,6 +209,17 @@ public class ChatService
 
         //Insert new message and Update session in a transaction
         await _cosmosDbService.UpsertSessionBatchAsync(tenantId,  userId, session, chatMessage);
+
+    }
+
+    /// <summary>
+    /// Calculate the number of tokens from the user prompt
+    /// </summary>
+    private int GetTokens(string userPrompt)
+    {
+        Tokenizer _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-3.5-turbo");
+
+        return _tokenizer.CountTokens(userPrompt);
 
     }
    
