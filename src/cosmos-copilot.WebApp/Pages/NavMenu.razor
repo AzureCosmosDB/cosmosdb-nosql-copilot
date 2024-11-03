@@ -162,7 +162,7 @@
     }
 
 
-    public async void SetSelectedUser(string reason = "", string? _user = null, string? _tenant = null)
+    public void SetSelectedUser(string reason = "", string? _user = null, string? _tenant = null)
     {
         _loadingComplete = false;
 
@@ -197,7 +197,7 @@
         if (isOk)
         {
             _deletePopUpOpen = false;
-            await chatService.DeleteChatSessionAsync(Tenant, User, _sessionId);
+            await chatService.DeleteChatSessionAsync(Tenant!, User!, _sessionId!);
 
             int index = ChatSessions.FindIndex(s => s.SessionId == _sessionId);
             ChatSessions.RemoveAt(index);
@@ -209,7 +209,7 @@
             if (!updateCurrentChat)
                 return;
 
-            CurrentSession = new Session(Tenant, User);
+            CurrentSession = new Session(Tenant!, User!);
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -248,7 +248,7 @@
                 updateCurrentChat = true;
             }
 
-            await chatService.RenameChatSessionAsync(Tenant, User, _sessionId, newName);
+            await chatService.RenameChatSessionAsync(Tenant!, User!, _sessionId!, newName);
             int index = ChatSessions.FindIndex(s => s.SessionId == _sessionId);
             ChatSessions[index].Name = newName;
 
@@ -273,7 +273,7 @@
 
     private async Task NewChat()
     {
-        var session = await chatService.CreateNewChatSessionAsync(Tenant, User);
+        var session = await chatService.CreateNewChatSessionAsync(Tenant!, User!);
         ChatSessions.Add(session);
         if (ChatSessions.Count == 1)
         {
@@ -291,7 +291,7 @@
 
         _loadingComplete = false;
 
-        ChatSessions = await chatService.GetAllChatSessionsAsync(Tenant, User);
+        ChatSessions = await chatService.GetAllChatSessionsAsync(Tenant!, User!);
         if (CurrentSession is not null && ChatSessions is not null & ChatSessions?.Count > 0)
         {
             var match = ChatSessions?.FirstOrDefault();
@@ -317,7 +317,7 @@
         }
         if (CurrentSession is null || index < 0)
         {
-            CurrentSession = new Session(Tenant, User);
+            CurrentSession = new Session(Tenant!, User!);
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -342,7 +342,7 @@
         if (ChatSessions is null) return 0;
 
         if (CurrentSession is null)
-            CurrentSession = new Session(Tenant, User);
+            CurrentSession = new Session(Tenant!, User!);
 
         CurrentSession.SessionId = _sessionId;
         CurrentSession.Name = sessionName;

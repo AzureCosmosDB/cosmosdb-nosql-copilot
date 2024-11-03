@@ -38,9 +38,18 @@ var tags = {
 }
 
 var chatSettings = {
-  maxConversationTokens: '100'
+  maxContextWindow: '3'
   cacheSimilarityScore: '0.99'
   productMaxResults: '10'
+}
+
+var openAiSettings = {
+  completionModelName: 'gpt-4o'
+  completionDeploymentName: 'gpt-4o'
+  embeddingModelName: 'text-embedding-3-large'
+  embeddingDeploymentName: 'text-embedding-3-large'
+  maxRagTokens: '3000'
+  maxContextTokens: '1000'
 }
 
 var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'
@@ -67,6 +76,10 @@ module ai 'app/ai.bicep' = {
   params: {
     accountName: !empty(openAiAccountName) ? openAiAccountName : '${abbreviations.openAiAccount}-${resourceToken}'
     location: location
+    completionModelName: openAiSettings.completionModelName
+    completionsDeploymentName: openAiSettings.completionDeploymentName
+    embeddingsModelName: openAiSettings.embeddingModelName
+    embeddingsDeploymentName: openAiSettings.embeddingDeploymentName
     tags: tags
   }
 }
@@ -89,9 +102,10 @@ module web 'app/web.bicep' = {
     openAiSettings: {
       completionDeploymentName: ai.outputs.deployments[0].name
       embeddingDeploymentName: ai.outputs.deployments[1].name
+      maxRagTokens: openAiSettings.maxRagTokens
     }
     chatSettings: {
-      maxConversationTokens: chatSettings.maxConversationTokens
+      maxContextWindow: chatSettings.maxContextWindow
       cacheSimilarityScore: chatSettings.cacheSimilarityScore
       productMaxResults: chatSettings.productMaxResults
     }
@@ -137,8 +151,10 @@ output AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE string = productDataSource
 output AZURE_OPENAI_ACCOUNT_ENDPOINT string = ai.outputs.endpoint
 output AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME string = ai.outputs.deployments[0].name
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME string = ai.outputs.deployments[1].name
+output AZURE_OPENAI_MAX_RAG_TOKENS string = openAiSettings.maxRagTokens
+output AZURE_OPENAI_MAX_CONTEXT_TOKENS string = openAiSettings.maxContextTokens
 
 // Chat outputs
-output AZURE_CHAT_MAX_CONVERSATION_TOKENS string = chatSettings.maxConversationTokens
+output AZURE_CHAT_MAX_CONTEXT_WINDOW string = chatSettings.maxContextWindow
 output AZURE_CHAT_CACHE_SIMILARITY_SCORE string = chatSettings.cacheSimilarityScore
 output AZURE_CHAT_PRODUCT_MAX_RESULTS string = chatSettings.productMaxResults

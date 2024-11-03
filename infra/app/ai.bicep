@@ -3,18 +3,23 @@ metadata description = 'Create AI accounts.'
 param accountName string
 param location string = resourceGroup().location
 param tags object = {}
+@secure()
+param completionModelName string
+param completionsDeploymentName string
+param embeddingsModelName string
+param embeddingsDeploymentName string
 
 var deployments = [
   {
-    name: 'gpt-4o'
+    name: completionsDeploymentName
     skuCapacity: 10
-    modelName: 'gpt-4o'
+    modelName: completionModelName
     modelVersion: '2024-05-13'
   }
   {
-    name: 'text-3-large'
+    name: embeddingsDeploymentName
     skuCapacity: 5
-    modelName: 'text-embedding-3-large'
+    modelName: embeddingsModelName
     modelVersion: '1'
   }
 ]

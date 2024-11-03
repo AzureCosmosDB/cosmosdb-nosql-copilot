@@ -118,7 +118,7 @@
                                 <div class="toast-header bg-primary text-light">
                                     <i class="bi bi-person me-1" aria-hidden="true"></i>
                                     <strong class="me-auto text-capitalize">User</strong>
-                                    <span class="me-2 badge rounded-pill bg-light">Tokens: @msg.PromptTokens</span>
+                                    <span class="me-2 badge rounded-pill bg-light">Prompt Tokens: @msg.PromptTokens</span>
                                     <small>@msg.TimeStamp.Humanize()</small>
                                 </div>
                                 <div class="toast-body">
@@ -134,7 +134,9 @@
                                     <i class="bi bi-robot me-1" aria-hidden="true"></i>
                                     <strong class="me-auto text-capitalize">Assistant</strong>
                                     <span class="me-2 badge rounded-pill bg-light">Cache Hit: @msg.CacheHit</span>
-                                    <span class="me-2 badge rounded-pill bg-light">Tokens: @msg.CompletionTokens</span>
+                                    <span class="me-2 badge rounded-pill bg-light">Generation Tokens: @msg.GenerationTokens</span>
+                                    <span class="me-2 badge rounded-pill bg-light">Completion Tokens: @msg.CompletionTokens</span>
+                                    <span class="me-2 badge rounded-pill bg-light">Time: @msg.ElapsedMilliseconds ms</span>
                                     <small>@msg.TimeStamp.Humanize()</small>
                                 </div>
                                 <div class="toast-body">
@@ -169,7 +171,7 @@
 
     // Inject NavigationManager
     [Inject]
-    private NavigationManager NavigationManager { get; set; }
+    private NavigationManager? NavigationManager { get; set; }
 
     [Parameter]
     public EventCallback<Session> OnChatUpdated { get; set; }
@@ -193,7 +195,7 @@
     private string? Tenant;
     private string? User;
 
-    private List<string> DummyUsers = new List<string> { "Mark", "James", "Sandeep","Sajee", "Justine" };
+    private List<string> DummyUsers = new List<string> { "Mark", "Justine", "Sandeep", "James", "Sajee" };
 
     private List<Message>? _messagesInChat;
     private static event EventHandler<Session>? _onMessagePosted;
@@ -226,9 +228,9 @@
             return;
 
         CurrentSession = null;
-        User = e.Value.ToString();
-        NavigationManager.NavigateTo($"?Tenant={Tenant}");
-        await OnUserChanged.InvokeAsync(new UserParameters (User, Tenant));
+        User = e.Value!.ToString();
+        NavigationManager!.NavigateTo($"?Tenant={Tenant}");
+        await OnUserChanged.InvokeAsync(new UserParameters (User!, Tenant));
     }
 
     async private Task ToggleNavMenu()
@@ -240,14 +242,14 @@
     {
         if (CurrentSession is not null)
         {
-            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant,User,CurrentSession.SessionId);
+            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant!,User!,CurrentSession.SessionId);
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
         // Read query string parameters using NavigationManager
-        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var uri = NavigationManager!.ToAbsoluteUri(NavigationManager.Uri);
         var queryString = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
         // Get the value of the "myParameter" query string parameter
@@ -287,7 +289,7 @@
 
         if (CurrentSession.SessionId != Interface.EMPTY_SESSION & CurrentSession.SessionId is not null)
         {
-            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant, User, CurrentSession?.SessionId);
+            _messagesInChat = await chatService.GetChatSessionMessagesAsync(Tenant!, User!, CurrentSession.SessionId!);
         }
 
         _loadingComplete = true;
@@ -318,13 +320,13 @@
            UserPromptSet = String.Empty;
         }
 
-        var message = await chatService.GetChatCompletionAsync(Tenant, User,CurrentSession?.SessionId, UserPrompt);
-        CurrentSession!.Tokens += message.CompletionTokens + message.PromptTokens;
+        var message = await chatService.GetChatCompletionAsync(Tenant!, User!, CurrentSession!.SessionId, UserPrompt);
+        CurrentSession!.Tokens += message.CompletionTokens + message.GenerationTokens;
 
         if(_messagesInChat?.Count == 1)
         {
             string newSessionName;
-            newSessionName = await chatService.SummarizeChatSessionNameAsync(Tenant, User, CurrentSession?.SessionId);
+            newSessionName = await chatService.SummarizeChatSessionNameAsync(Tenant!, User!, CurrentSession!.SessionId);
 
             if (CurrentSession is not null)
             {

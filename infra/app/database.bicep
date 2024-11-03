@@ -57,7 +57,7 @@ var containers = [
       vectorIndexes: [
         {
           path: '/vectors'
-          type: 'quantizedFlat'
+          type: 'diskAnn'
         }
       ]
     }
@@ -89,7 +89,7 @@ var containers = [
       vectorIndexes: [
         {
           path: '/vectors'
-          type: 'quantizedFlat'
+          type: 'diskAnn'
         }
       ]
     }
