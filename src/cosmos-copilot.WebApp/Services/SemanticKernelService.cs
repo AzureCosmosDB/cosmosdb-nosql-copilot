@@ -1,17 +1,17 @@
-﻿using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
+﻿using Azure.AI.Inference;
 using Cosmos.Copilot.Models;
-using Microsoft.SemanticKernel.Embeddings;
-using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
-using Microsoft.Extensions.VectorData;
-using Microsoft.Azure.Cosmos;
-using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Cosmos.Copilot.Options;
-using Azure.AI.Inference;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.VectorData;
+using Microsoft.ML.Tokenizers;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+using Microsoft.SemanticKernel.Embeddings;
 using OpenAI;
 using OpenAI.Chat;
-using Microsoft.ML.Tokenizers;
+using System.Text.Json;
 
 
 namespace Cosmos.Copilot.Services;
@@ -25,13 +25,9 @@ public class SemanticKernelService
     readonly Kernel kernel;
     
     private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<Product> _productContainer;
-    
     private readonly string _productDataSourceURI;
-
     private readonly Tokenizer _tokenizer;
-
     private readonly int _maxRagTokens;
-
     private readonly int _maxContextTokens;
 
 
@@ -69,7 +65,7 @@ public class SemanticKernelService
     /// </summary>
     /// <param name="openAiClient">OpenAIClient injected into the service for embeddings and completions</param>
     /// <param name="cosmosClient">CosmosClient injected into the service for product vector search</param>
-    /// <param name="openAiOptions">values for embeddings and completions models</param>
+    /// <param name="openAIOptions">values for embeddings and completions models</param>
     /// <param name="cosmosOptions">values for product data</param>
     /// <exception cref="ArgumentNullException">Thrown when any value is either null or empty.</exception>
     /// <remarks>
@@ -93,6 +89,10 @@ public class SemanticKernelService
         ArgumentNullException.ThrowIfNullOrEmpty(maxContextTokens);
         ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
+
+        //Set the product data source URI for loading data
+        _productDataSourceURI = productDataSourceURI;
 
         // Initialize the Semantic Kernel
         var builder = Kernel.CreateBuilder();
@@ -103,64 +103,28 @@ public class SemanticKernelService
         //Add Azure OpenAI text embedding generation service
         builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
 
-        //Add Azure CosmosDB NoSql Vector Store
+        //Add Azure CosmosDB NoSql client and Database to the Semantic Kernel
         builder.Services.AddSingleton<Database>(
             sp =>
             {
                 var client = cosmosClient;
                 return client.GetDatabase(databaseName);
             });
-        
+
+        // Add the Azure CosmosDB NoSQL Vector Store Record Collection for Products
         var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product>{ PartitionKeyPropertyName = "categoryId" };
         builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
         
         kernel = builder.Build();
 
-        _productDataSourceURI = productDataSourceURI;
-        
+        //Get a reference to the product container from Semantic Kernel for vector search and adding/updating products
         _productContainer = (AzureCosmosDBNoSQLVectorStoreRecordCollection<Product>)kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>>();
 
+        //Create a tokenizer for the model
+        _tokenizer = Tokenizer.CreateTiktokenForModel(modelName: "gpt-4o");
         _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens: 3000;
         _maxContextTokens = Int32.TryParse(maxContextTokens, out _maxContextTokens) ? _maxContextTokens : 1000;
 
-        _tokenizer = Tokenizer.CreateTiktokenForModel(modelName: "gpt-4o");
-    }
-
-    /// <summary>
-    /// Generates a completion using a user prompt with chat history to Semantic Kernel and returns the response.
-    /// </summary>
-    /// <param name="contextWindow">List of Message objects containign the context window (chat history) to send to the model.</param>
-    /// <returns>Generated response along with tokens used to generate it.</returns>
-    public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
-    {
-        var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_systemPrompt);
-
-        foreach (var message in contextWindow)
-        {
-            skChatHistory.AddUserMessage(message.Prompt);
-            if (message.Completion != string.Empty)
-                skChatHistory.AddAssistantMessage(message.Completion);
-        }
-
-        PromptExecutionSettings settings = new()
-        {
-            ExtensionData = new Dictionary<string, object>()
-            {
-                { "temperature", 0.2 },
-                { "top_p", 0.7 },
-                { "max_tokens", 1000  }
-            }
-        };
-
-        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
-
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
-
-        string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
-
-        return (completion, tokens);
     }
 
     /// <summary>
@@ -168,7 +132,7 @@ public class SemanticKernelService
     /// </summary>
     /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
     /// <param name="ragData">Vector search results to send to the model.</param>
-    /// <returns>Generated response along with tokens used to generate it.</returns>
+    /// <returns>Generated response along with tokens used to generate it and tokens for the completion text.</returns>
     public async Task<(string completion, int generationTokens, int completionTokens)> GetRagCompletionAsync(List<Message> contextWindow, string ragData)
     {
         
@@ -218,6 +182,46 @@ public class SemanticKernelService
         return (completion, generationTokens, completionTokens);
     }
 
+    /// <summary>
+    /// Performs a vector search on the Cosmos DB product container using Semantic Kernel
+    /// </summary>
+    /// <param name="promptVectors">Vectors used to do the search</param>
+    /// <param name="productMaxResults">Limit the number of returned items</param>
+    /// <returns>JSON string of returned products</returns>
+    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
+    {
+        var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
+
+        //Call Semantic Kernel to perform the vector search
+        var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
+
+        var resultRecords = new List<VectorSearchResult<Product>>();
+        await foreach (var result in searchResult.Results)
+        {
+            resultRecords.Add(result);
+        }
+
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonSerializer.Serialize(resultRecords);
+        return productsString;
+    }
+
+    /// <summary>
+    /// Trims the text passed in using a tokenizer.
+    /// </summary>
+    /// <param name="maxTokens">Amount of tokens to calculate the amount of text to limit</param>
+    /// <param name="text">Text content to trim</param>
+    /// <returns>The reduced text</returns>
+    private string TrimToTokenLimit(int maxTokens, string text)
+    {
+
+        // Get the index of the string up to the maxTokens
+        int trimIndex = _tokenizer.IndexOfTokenCount(text, maxTokens, out string? processedText, out _);
+
+        // Return the trimmed text based upon the maxTokens
+        return text.Substring(0, trimIndex);
+
+    }
 
     /// <summary>
     /// Generates embeddings from the deployed OpenAI embeddings model using Semantic Kernel.
@@ -236,9 +240,8 @@ public class SemanticKernelService
     /// <summary>
     /// Sends the existing conversation to the Semantic Kernel and returns a two word summary.
     /// </summary>
-    /// <param name="sessionId">Chat session identifier for the current conversation.</param>
     /// <param name="conversationText">conversation history to send to Semantic Kernel.</param>
-    /// <returns>Summarization response from the OpenAI completion model deployment.</returns>
+    /// <returns>Summarized text from the OpenAI completion model deployment.</returns>
     public async Task<string> SummarizeConversationAsync(string conversation)
     {
         var skChatHistory = new ChatHistory();
@@ -260,23 +263,6 @@ public class SemanticKernelService
         string completion = result.Items[0].ToString()!;
 
         return completion;
-    }
-
-    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
-    {
-        var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
-        
-        var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
-        
-        var resultRecords = new List<VectorSearchResult<Product>>();
-        await foreach (var result in searchResult.Results)
-        {
-            resultRecords.Add(result);
-        }
-
-        //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonSerializer.Serialize(resultRecords);
-        return productsString;
     }
 
     public async Task LoadProductDataAsync()
@@ -307,7 +293,7 @@ public class SemanticKernelService
             foreach (var product in products)
             {
                 try {
-                    await InsertProductAsync(product);
+                    await UpsertProductAsync(product);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
@@ -320,16 +306,10 @@ public class SemanticKernelService
     /// <summary>
     /// Upserts a new product.
     /// </summary>
-    /// <param name="product">Product item to create or update.</param>
-    /// <returns>Id of the newly created product item.</returns>
-    public async Task<string> InsertProductAsync(Product product)
+    /// <param name="product">Product item to create or update</param>
+    /// <returns>The newly created product item</returns>
+    public async Task<string> UpsertProductAsync(Product product)
     {
-
-        // PartitionKey partitionKey = new(product.categoryId);
-        // return await _productContainer.CreateItemAsync<Product>(
-        //     item: product,
-        //     partitionKey: partitionKey
-        // );
         
         return await _productContainer.UpsertAsync(product);
         
@@ -341,28 +321,47 @@ public class SemanticKernelService
     /// <param name="product">Product item to delete.</param>
     public async Task DeleteProductAsync(Product product)
     {
-
-        // PartitionKey partitionKey = new(product.categoryId);
-        // await _productContainer.DeleteItemAsync<Product>(
-        //     id: product.id,
-        //     partitionKey: partitionKey
-        // );
-
         
         var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
         await _productContainer.DeleteAsync(compositeKey);
         
-        
     }
 
-    private string TrimToTokenLimit(int maxTokens, string text)
+    /// <summary>
+    /// Generates a completion using a user prompt with chat history to Semantic Kernel and returns the response.
+    /// </summary>
+    /// <param name="contextWindow">List of Message objects containign the context window (chat history) to send to the model.</param>
+    /// <returns>Generated response along with tokens used to generate it.</returns>
+    public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
     {
-        
-        // Get the index of the string up to the maxTokens
-        int trimIndex = _tokenizer.IndexOfTokenCount(text, maxTokens, out string? processedText, out _);
-                
-        // Return the trimmed text based upon the maxTokens
-        return text.Substring(0, trimIndex);
+        var skChatHistory = new ChatHistory();
+        skChatHistory.AddSystemMessage(_systemPrompt);
 
+        foreach (var message in contextWindow)
+        {
+            skChatHistory.AddUserMessage(message.Prompt);
+            if (message.Completion != string.Empty)
+                skChatHistory.AddAssistantMessage(message.Completion);
+        }
+
+        PromptExecutionSettings settings = new()
+        {
+            ExtensionData = new Dictionary<string, object>()
+            {
+                { "temperature", 0.2 },
+                { "top_p", 0.7 },
+                { "max_tokens", 1000  }
+            }
+        };
+
+        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+
+        string completion = result.Items[0].ToString()!;
+        int tokens = completionUsage.CompletionTokens;
+
+        return (completion, tokens);
     }
+
 }

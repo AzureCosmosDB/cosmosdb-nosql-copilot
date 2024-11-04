@@ -32,64 +32,6 @@ public class ChatService
         _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-4o");
     }
 
-    public async Task InitializeAsync()
-    {
-        await _semanticKernelService.LoadProductDataAsync();
-    }
-
-    /// <summary>
-    /// Returns list of chat session ids and names for left-hand nav to bind to (display Name and ChatSessionId as hidden)
-    /// </summary>
-    public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
-    {
-        return await _cosmosDbService.GetSessionsAsync(tenantId,userId);
-    }
-
-    /// <summary>
-    /// Returns the chat messages to display on the main web page when the user selects a chat from the left-hand nav
-    /// </summary>
-    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
-    {
-        
-        return await _cosmosDbService.GetSessionMessagesAsync(tenantId,userId, sessionId);
-    }
-
-    /// <summary>
-    /// User creates a new Chat Session.
-    /// </summary>
-    public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
-    {
-
-        Session session = new(tenantId, userId);
-
-        await _cosmosDbService.InsertSessionAsync(tenantId,  userId,session);
-
-        return session;
-
-    }
-
-    /// <summary>
-    /// Rename the Chat Session from "New Chat" to the summary provided by OpenAI
-    /// </summary>
-    public async Task RenameChatSessionAsync(string tenantId, string userId,string sessionId, string newChatSessionName)
-    {
-       
-        Session session = await _cosmosDbService.GetSessionAsync(tenantId,  userId,sessionId);
-
-        session.Name = newChatSessionName;
-
-        await _cosmosDbService.UpdateSessionAsync(tenantId, userId,session);
-    }
-
-    /// <summary>
-    /// User deletes a chat session
-    /// </summary>
-    public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
-    {
-        
-        await _cosmosDbService.DeleteSessionAndMessagesAsync( tenantId, userId, sessionId);
-    }
-
     /// <summary>
     /// Get a completion for a user prompt from Azure OpenAi Service
     /// This is the main LLM Workflow for the Chat Service
@@ -153,6 +95,29 @@ public class ChatService
         
         return allMessages.TakeLast(_maxContextWindow).ToList();
 
+    }
+
+    /// <summary>
+    /// Query the semantic cache with user prompt vectors for the current context window in this conversation
+    /// </summary>
+    private async Task<string> GetCacheAsync(float[] vectors)
+    {
+
+        //Check the cache for similar vectors
+        return await _cosmosDbService.GetCacheAsync(vectors, _cacheSimilarityScore);
+
+    }
+
+    /// <summary>
+    /// Cache the last generated completion with user prompt vectors for the current context window in this conversation
+    /// </summary>
+    private async Task CachePutAsync(string cachePrompts, float[] cacheVectors, string generatedCompletion)
+    {
+        //Include the user prompts text to view. They are not used in the cache search.
+        CacheItem cacheItem = new(cacheVectors, cachePrompts, generatedCompletion);
+
+        //Put the prompts, vectors and completion into the cache
+        await _cosmosDbService.CachePutAsync(cacheItem);
     }
 
     /// <summary>
@@ -222,30 +187,6 @@ public class ChatService
         return _tokenizer.CountTokens(userPrompt);
 
     }
-   
-
-    /// <summary>
-    /// Query the semantic cache with user prompt vectors for the current context window in this conversation
-    /// </summary>
-    private async Task<string> GetCacheAsync(float[] vectors)
-    {
-
-        //Check the cache for similar vectors
-        return await _cosmosDbService.GetCacheAsync(vectors, _cacheSimilarityScore);
-
-    }
-
-    /// <summary>
-    /// Cache the last generated completion with user prompt vectors for the current context window in this conversation
-    /// </summary>
-    private async Task CachePutAsync(string cachePrompts, float[] cacheVectors, string generatedCompletion)
-    {
-        //Include the user prompts text to view. They are not used in the cache search.
-        CacheItem cacheItem = new(cacheVectors, cachePrompts, generatedCompletion);
-
-        //Put the prompts, vectors and completion into the cache
-        await _cosmosDbService.CachePutAsync(cacheItem);
-    }
 
     /// <summary>
     /// Clear the Semantic Cache
@@ -253,5 +194,63 @@ public class ChatService
     public async Task ClearCacheAsync()
     {
         await _cosmosDbService.CacheClearAsync();
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _semanticKernelService.LoadProductDataAsync();
+    }
+
+    /// <summary>
+    /// Returns list of chat session ids and names for left-hand nav to bind to (display Name and ChatSessionId as hidden)
+    /// </summary>
+    public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
+    {
+        return await _cosmosDbService.GetSessionsAsync(tenantId, userId);
+    }
+
+    /// <summary>
+    /// Returns the chat messages to display on the main web page when the user selects a chat from the left-hand nav
+    /// </summary>
+    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
+    {
+
+        return await _cosmosDbService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+    }
+
+    /// <summary>
+    /// User creates a new Chat Session.
+    /// </summary>
+    public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
+    {
+
+        Session session = new(tenantId, userId);
+
+        await _cosmosDbService.InsertSessionAsync(tenantId, userId, session);
+
+        return session;
+
+    }
+
+    /// <summary>
+    /// Rename the Chat Session from "New Chat" to the summary provided by OpenAI
+    /// </summary>
+    public async Task RenameChatSessionAsync(string tenantId, string userId, string sessionId, string newChatSessionName)
+    {
+
+        Session session = await _cosmosDbService.GetSessionAsync(tenantId, userId, sessionId);
+
+        session.Name = newChatSessionName;
+
+        await _cosmosDbService.UpdateSessionAsync(tenantId, userId, session);
+    }
+
+    /// <summary>
+    /// User deletes a chat session
+    /// </summary>
+    public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
+    {
+
+        await _cosmosDbService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 }
