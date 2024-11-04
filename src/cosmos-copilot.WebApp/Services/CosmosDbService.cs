@@ -2,6 +2,7 @@
 using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -46,6 +47,7 @@ public class CosmosDbService
         Container chatContainer = database.GetContainer(chatContainerName)!;
         Container cacheContainer = database.GetContainer(cacheContainerName)!;
         Container productContainer = database.GetContainer(productContainerName)!;
+
 
         _chatContainer = chatContainer ??
             throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
@@ -96,7 +98,6 @@ public class CosmosDbService
             return partitionKey;
         }
     }
-
     /// <summary>
     /// Creates a new chat session.
     /// </summary>
@@ -221,6 +222,7 @@ public class CosmosDbService
     /// <param name="messages">Chat message and session items to create or replace.</param>
     public async Task UpsertSessionBatchAsync(string tenantId, string userId, params dynamic[] messages)
     {
+
         //Make sure items are all in the same partition
         if (messages.Select(m => m.SessionId).Distinct().Count() > 1)
         {
@@ -239,45 +241,31 @@ public class CosmosDbService
     }
 
     /// <summary>
-    /// Batch deletes an existing chat session and all related messages.
+    /// Deletes an existing chat session and all chat messages in the same partition key
     /// </summary>
-    /// <param name="tenantId">Id of Tenant.</param>
-    /// <param name="userId">Id of User.</param>
-    /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
+    /// <param name="tenantId">Id of Tenant</param>
+    /// <param name="userId">Id of User</param>
+    /// <param name="sessionId">Chat session id for the session and all the chat messages in the partition.</param>
     public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
     {
+
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
-        QueryDefinition query = new QueryDefinition("SELECT VALUE c.id FROM c WHERE c.sessionId = @sessionId")
-                .WithParameter("@sessionId", sessionId);
+        await _chatContainer.DeleteAllItemsByPartitionKeyStreamAsync(partitionKey);
 
-        FeedIterator<string> response = _chatContainer.GetItemQueryIterator<string>(query);
-
-        TransactionalBatch batch = _chatContainer.CreateTransactionalBatch(partitionKey);
-        while (response.HasMoreResults)
-        {
-            FeedResponse<string> results = await response.ReadNextAsync();
-            foreach (var itemId in results)
-            {
-                batch.DeleteItem(
-                    id: itemId
-                );
-            }
-        }
-
-        await batch.ExecuteAsync();
     }
 
+
     /// <summary>
-    /// Find a cache item.
+    /// Perform a vector search to find an item in the cache collection
+    /// OrderBy returns the highest similary score first.
     /// Select Top 1 to get only get one result.
-    /// OrderBy DESC to return the highest similarity score first.
-    /// Use a subquery to get the similarity score so we can then use in a WHERE clause
     /// </summary>
     /// <param name="vectors">Vectors to do the semantic search in the cache.</param>
     /// <param name="similarityScore">Value to determine how similar the vectors. >0.99 is exact match.</param>
     public async Task<string> GetCacheAsync(float[] vectors, double similarityScore)
-    {   
+    {
+
         string cacheResponse = "";
 
         string queryText = $"""
@@ -312,23 +300,22 @@ public class CosmosDbService
     }
 
     /// <summary>
-    /// Add a new cache item.
+    /// Add a new item to the cache collection
     /// </summary>
-    /// <param name="vectors">Vectors used to perform the semantic search.</param>
-    /// <param name="prompt">Text value of the vectors in the search.</param>
-    /// <param name="completion">Text value of the previously generated response to return to the user.</param>
+    /// <param name="cacheItem">Item to add to the cache collection</param>
     public async Task CachePutAsync(CacheItem cacheItem)
     {
+
         await _cacheContainer.UpsertItemAsync<CacheItem>(item: cacheItem);
     }
 
     /// <summary>
-    /// Remove a cache item using its vectors.
+    /// Remove a cache item using a vector search
     /// </summary>
     /// <param name="vectors">Vectors used to perform the semantic search. Similarity Score is set to 0.99 for exact match</param>
     public async Task CacheRemoveAsync(float[] vectors)
     {
-        double similarityScore = 0.99;
+        double similarityScore = 0.99;        
 
         string queryText = $"""
             SELECT Top 1 c.id
@@ -361,6 +348,7 @@ public class CosmosDbService
     /// </summary>
     public async Task CacheClearAsync()
     {
+
         string queryText = "SELECT c.id FROM c";
 
         var queryDef = new QueryDefinition(query: queryText);

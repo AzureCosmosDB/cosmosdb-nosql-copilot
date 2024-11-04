@@ -18,6 +18,7 @@ param openAiAccountEndpoint string
 type openAiOptions = {
   completionDeploymentName: string
   embeddingDeploymentName: string
+  maxRagTokens: string
 }
 
 @description('Application configuration settings for OpenAI.')
@@ -34,7 +35,7 @@ type cosmosDbOptions = {
 param cosmosDbSettings cosmosDbOptions
 
 type chatOptions = {
-  maxConversationTokens: string
+  maxContextWindow: string
   cacheSimilarityScore: string
   productMaxResults: string
 }
@@ -88,15 +89,16 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       OPENAI__ENDPOINT: openAiAccountEndpoint
       OPENAI__COMPLETIONDEPLOYMENTNAME: openAiSettings.completionDeploymentName
       OPENAI__EMBEDDINGDEPLOYMENTNAME: openAiSettings.embeddingDeploymentName
+      OPENAI__MAXRAGTOKENS: openAiSettings.maxRagTokens
       COSMOSDB__ENDPOINT: databaseAccountEndpoint
       COSMOSDB__DATABASE: cosmosDbSettings.database
       COSMOSDB__CHATCONTAINER: cosmosDbSettings.chatContainer
       COSMOSDB__CACHECONTAINER: cosmosDbSettings.cacheContainer
       COSMOSDB__PRODUCTCONTAINER: cosmosDbSettings.productContainer
       COSMOSDB__PRODUCTDATASOURCE: cosmosDbSettings.productDataSource
-      CHAT_MAXCONVERSATIONTOKENS: chatSettings.maxConversationTokens
-      CHAT_CACHESIMILARITYSCORE: chatSettings.cacheSimilarityScore
-      CHAT_PRODUCTMAXRESULTS: chatSettings.productMaxResults
+      CHAT__MAXCONTEXTWINDOW: chatSettings.maxContextWindow
+      CHAT__CACHESIMILARITYSCORE: chatSettings.cacheSimilarityScore
+      CHAT__PRODUCTMAXRESULTS: chatSettings.productMaxResults
       AZURE_CLIENT_ID: userAssignedManagedIdentity.clientId
     }
   }

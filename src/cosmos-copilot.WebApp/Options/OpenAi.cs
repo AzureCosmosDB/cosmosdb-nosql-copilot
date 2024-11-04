@@ -7,4 +7,8 @@ public record OpenAi
     public required string CompletionDeploymentName { get; init; }
 
     public required string EmbeddingDeploymentName { get; init; }
+
+    public required string MaxRagTokens { get; init; }
+
+    public required string MaxContextTokens { get; init; }
 }

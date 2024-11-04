@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Cosmos.Copilot.Models;
 
@@ -33,8 +34,16 @@ public record Message
     public string Completion { get; set; }
 
     public int CompletionTokens { get; set; }
+
+    public int GenerationTokens { get; set; }
+
     public bool CacheHit {get; set;}
-    public Message(string tenantId, string userId, string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0, bool cacheHit = false)
+
+    public long ElapsedMilliseconds { get; set; }
+
+    private Stopwatch stopwatch  = new Stopwatch();
+
+    public Message(string tenantId, string userId, string sessionId, int promptTokens, string prompt, string completion = "", int completionTokens = 0, int generationTokens = 0, bool cacheHit = false, long elapsedMilliseconds = 0)
     {
         Id = Guid.NewGuid().ToString();
         Type = nameof(Message);
@@ -43,9 +52,19 @@ public record Message
         SessionId = sessionId;
         TimeStamp = DateTime.UtcNow;
         Prompt = prompt;
-        PromptTokens = promptTokens;
         Completion = completion;
+        PromptTokens = promptTokens;
         CompletionTokens = completionTokens;
+        GenerationTokens = generationTokens;
         CacheHit = cacheHit;
+        ElapsedMilliseconds = elapsedMilliseconds;
+
+        stopwatch.Start();
+    }
+
+    public void CalculateElapsedTime()
+    {
+        stopwatch.Stop();
+        ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
     }
 }
