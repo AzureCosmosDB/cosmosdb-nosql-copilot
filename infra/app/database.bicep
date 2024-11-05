@@ -39,6 +39,9 @@ var containers = [
     vectorEmbeddingPolicy: {
       vectorEmbeddings: []
     }
+    fullTextPolicy: {
+      fullTextPaths: []
+    }
   }
   {
     name: 'cache' // Container for cached messages
@@ -60,6 +63,11 @@ var containers = [
           type: 'diskANN'
         }
       ]
+      fullTextIndexes: [
+        {
+          path: '/description',
+        }
+      ]
     }
     vectorEmbeddingPolicy: {
       vectorEmbeddings: [
@@ -68,6 +76,15 @@ var containers = [
           dataType: 'float32'
           dimensions: 1536
           distanceFunction: 'cosine'
+        }
+      ]
+    }
+    fullTextPolicy: {
+      defaultLanguage: 'en-US',
+      fullTextPaths: [
+        {
+          path: '/description',
+          language: 'en-US'
         }
       ]
     }
@@ -92,6 +109,11 @@ var containers = [
           type: 'diskANN'
         }
       ]
+      fullTextIndexes: [
+        {
+          path: '/description',
+        }
+      ]
     }
     vectorEmbeddingPolicy: {
       vectorEmbeddings: [
@@ -100,6 +122,15 @@ var containers = [
           dataType: 'float32'
           dimensions: 1536
           distanceFunction: 'cosine'
+        }
+      ]
+    }
+    fullTextPolicy: {
+      defaultLanguage: 'en-US',
+      fullTextPaths: [
+        {
+          path: '/description',
+          language: 'en-US'
         }
       ]
     }
