@@ -6,7 +6,7 @@
       "value": "${AZURE_ENV_NAME}"
     },
     "location": {
-      "value": "swedencentral"
+      "value": "${AZURE_LOCATION}"
     },
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
