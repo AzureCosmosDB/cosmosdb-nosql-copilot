@@ -67,10 +67,13 @@ public class ChatService
         }
 
         //RAG Pattern Vector search results for product data
-        string vectorSearchResults = await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);
+        string searchResults = await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);
+
+        // RAG Pattern Hybrid search results for product data
+        // string searchResults = await _cosmosDbService.HybridSearchProductsAsync(promptText, promptVectors, _productMaxResults);
 
         //Call Semantic Kernel to do a vector search generate a new completion
-        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
+        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, searchResults);
 
 
         //Cache the prompts in the current context window and their vectors with the generated completion

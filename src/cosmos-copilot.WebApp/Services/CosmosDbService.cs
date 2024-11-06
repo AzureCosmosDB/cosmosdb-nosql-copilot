@@ -261,7 +261,7 @@ public class CosmosDbService
     /// <param name="promptText">Text used to do the search</param>
     /// <param name="productMaxResults">Limit the number of returned items</param>
     /// <returns>JSON string of returned products</returns>
-    public async Task<string> PerformFullTextSearch(string promptText, int productMaxResults)
+    public async Task<string> FullTextSearchProductAsync(string promptText, int productMaxResults)
     {
         List<Products> results = new();
 
@@ -302,7 +302,7 @@ public class CosmosDbService
     /// <param name="promptVectors">Vectors used to do the search</param>
     /// <param name="productMaxResults">Limit the number of returned items</param>
     /// <returns>JSON string of returned products</returns>
-    public async Task<string> PerformHybridSearch(string promptText, float[] promptVectors, int productMaxResults)
+    public async Task<string> HybridSearchProductAsync(string promptText, float[] promptVectors, int productMaxResults)
     {
         List<Products> results = new();
 
