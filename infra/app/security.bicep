@@ -8,6 +8,9 @@ param appPrincipalId string = ''
 @description('Id of the user principals to assign database and application roles.')
 param userPrincipalId string = ''
 
+@description('Principal type used for the role assignment.')
+param principalType string = ''
+
 resource database 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: databaseAccountName
 }
@@ -31,6 +34,7 @@ module nosqlAppAssignment '../core/database/cosmos-db/nosql/role/assignment.bice
     targetAccountName: database.name // Existing account
     roleDefinitionId: nosqlDefinition.outputs.id // New role definition
     principalId: appPrincipalId // Principal to assign role
+    principalType: principalType // Principal type for assigning role
   }
 }
 
@@ -40,6 +44,7 @@ module nosqlUserAssignment '../core/database/cosmos-db/nosql/role/assignment.bic
     targetAccountName: database.name // Existing account
     roleDefinitionId: nosqlDefinition.outputs.id // New role definition
     principalId: userPrincipalId ?? '' // Principal to assign role
+    principalType: principalType // Principal type for assigning role
   }
 }
 
@@ -63,7 +68,7 @@ module openaiUserAssignment '../core/security/role/assignment.bicep' = if (!empt
       '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
     ) // Cognitive Services OpenAI User built-in role
     principalId: userPrincipalId // Principal to assign role
-    principalType: 'User' // Current deployment user
+    principalType: !empty(principalType) ? principalType : 'User' // Principal type or current deployment user
   }
 }
 

@@ -1,7 +1,9 @@
 ﻿using Cosmos.Copilot.Models;
 using Cosmos.Copilot.Options;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.Tokenizers;
+using Microsoft.VisualBasic;
 
 namespace Cosmos.Copilot.Services;
 
@@ -41,18 +43,19 @@ public class ChatService
 
         //Create a message object for the new User Prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
-        
-        //Grab context window from the conversation history up to the maximum conversation depth
-        List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
 
-        //Grab the user prompts for the context window
+        //Get the context window for this conversation up to the maximum conversation depth.
+        List<Message> contextWindow = 
+            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
+
+        //Serialize the user prompts for the context window
         string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
 
-        //Get the embeddings for the user prompts
+        //Generate embeddings for the user prompts for search
         float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
 
-        //Perform a cache search to see if this prompt has already been used in the same sequence and depth as this conversation
-        string cacheResponse = await GetCacheAsync(promptVectors);
+        //Perform a cache search for the same sequence and depth of prompts in this conversation
+        string cacheResponse = await _cosmosDbService.GetCacheAsync(promptVectors, _cacheSimilarityScore);
 
         //Cache hit, return the cached completion
         if (!string.IsNullOrEmpty(cacheResponse))
@@ -75,52 +78,17 @@ public class ChatService
         //Call Semantic Kernel to do a vector search generate a new completion
         (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, searchResults);
 
+        //Call Semantic Kernel to generate a new completion
+        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = 
+            await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
 
         //Cache the prompts in the current context window and their vectors with the generated completion
-        await CachePutAsync(prompts, promptVectors, chatMessage.Completion);
+        await _cosmosDbService.CachePutAsync(new CacheItem(promptVectors, prompts, chatMessage.Completion));
 
-        //Persist the prompt/completion, elapsed time, update the session tokens
+        //Persist the prompt/completion, elapsed time, update the session tokens in chat history
         await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
 
         return chatMessage;
-    }
-
-    /// <summary>
-    /// Get the context window for this conversation. This is used in cache search as well as generating completions
-    /// </summary>
-    private async Task<List<Message>> GetChatSessionContextWindow(string tenantId, string userId, string sessionId)
-    {
-        
-        List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(tenantId, userId, sessionId);
- 
-        //Build the contextWindow from allMessages, start from the end and work backwards
-        //This includes the latest user prompt which is already cached
-        
-        return allMessages.TakeLast(_maxContextWindow).ToList();
-
-    }
-
-    /// <summary>
-    /// Query the semantic cache with user prompt vectors for the current context window in this conversation
-    /// </summary>
-    private async Task<string> GetCacheAsync(float[] vectors)
-    {
-
-        //Check the cache for similar vectors
-        return await _cosmosDbService.GetCacheAsync(vectors, _cacheSimilarityScore);
-
-    }
-
-    /// <summary>
-    /// Cache the last generated completion with user prompt vectors for the current context window in this conversation
-    /// </summary>
-    private async Task CachePutAsync(string cachePrompts, float[] cacheVectors, string generatedCompletion)
-    {
-        //Include the user prompts text to view. They are not used in the cache search.
-        CacheItem cacheItem = new(cacheVectors, cachePrompts, generatedCompletion);
-
-        //Put the prompts, vectors and completion into the cache
-        await _cosmosDbService.CachePutAsync(cacheItem);
     }
 
     /// <summary>
@@ -177,17 +145,6 @@ public class ChatService
 
         //Insert new message and Update session in a transaction
         await _cosmosDbService.UpsertSessionBatchAsync(tenantId,  userId, session, chatMessage);
-
-    }
-
-    /// <summary>
-    /// Calculate the number of tokens from the user prompt
-    /// </summary>
-    private int GetTokens(string userPrompt)
-    {
-        Tokenizer _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-3.5-turbo");
-
-        return _tokenizer.CountTokens(userPrompt);
 
     }
 
