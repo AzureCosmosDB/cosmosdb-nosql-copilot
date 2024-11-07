@@ -14,6 +14,9 @@ param enableServerless bool = true
 @description('Enables NoSQL vector search for this account. Defaults to false.')
 param enableNoSQLVectorSearch bool = false
 
+@description('Enables NoSQL full text search for this account. Defaults to false.')
+param enableNoSQLFullTextSearch bool = false
+
 @description('Disables key-based authentication. Defaults to false.')
 param disableKeyBasedAuth bool = false
 

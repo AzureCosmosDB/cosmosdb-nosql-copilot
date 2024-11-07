@@ -65,7 +65,7 @@ var containers = [
       ]
       fullTextIndexes: [
         {
-          path: '/description',
+          path: '/tags'
         }
       ]
     }
@@ -80,10 +80,10 @@ var containers = [
       ]
     }
     fullTextPolicy: {
-      defaultLanguage: 'en-US',
+      defaultLanguage: 'en-US'
       fullTextPaths: [
         {
-          path: '/description',
+          path: '/tags'
           language: 'en-US'
         }
       ]
@@ -111,7 +111,7 @@ var containers = [
       ]
       fullTextIndexes: [
         {
-          path: '/description',
+          path: '/tags'
         }
       ]
     }
@@ -126,10 +126,10 @@ var containers = [
       ]
     }
     fullTextPolicy: {
-      defaultLanguage: 'en-US',
+      defaultLanguage: 'en-US'
       fullTextPaths: [
         {
-          path: '/description',
+          path: '/tags'
           language: 'en-US'
         }
       ]
@@ -145,6 +145,7 @@ module cosmosDbAccount '../core/database/cosmos-db/nosql/account.bicep' = {
     tags: tags
     enableServerless: true
     enableVectorSearch: true
+    enableNoSQLFullTextSearch: true
     disableKeyBasedAuth: true
   }
 }

@@ -2,7 +2,7 @@
 using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -263,7 +263,7 @@ public class CosmosDbService
     /// <returns>JSON string of returned products</returns>
     public async Task<string> FullTextSearchProductAsync(string promptText, int productMaxResults)
     {
-        List<Products> results = new();
+        List<Product> results = new();
 
         string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string searchWords = string.Join(", ", words.Select(word => $"'{word}'"));
@@ -274,7 +274,7 @@ public class CosmosDbService
             SELECT
                 Top @maxResults c
             FROM c
-            WHERE FullTextContainsAny(c.text, {formattedWords})
+            WHERE FullTextContainsAny(c.text, {searchWords})
             ORDER BY RRF_SCORE(
                 RANK(FullTextScore(c.text, {rankedWords}))
                 )
@@ -292,7 +292,9 @@ public class CosmosDbService
             results.AddRange(response);
         }
 
-        return results;        
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonSerializer.Serialize(results);
+        return productsString;     
     }
 
     /// <summary>
@@ -304,7 +306,7 @@ public class CosmosDbService
     /// <returns>JSON string of returned products</returns>
     public async Task<string> HybridSearchProductAsync(string promptText, float[] promptVectors, int productMaxResults)
     {
-        List<Products> results = new();
+        List<Product> results = new();
 
         string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string searchWords = string.Join(", ", words.Select(word => $"'{word}'"));
@@ -315,7 +317,7 @@ public class CosmosDbService
             SELECT
                 Top @maxResults c
             FROM c
-            WHERE FullTextContainsAny(c.text, {formattedWords})
+            WHERE FullTextContainsAny(c.text, {searchWords})
             ORDER BY RRF_SCORE(
                 RANK(FullTextScore(c.text, {rankedWords}))
                 RANK(VectorDistance(c.vectors, @vectors))
@@ -335,7 +337,9 @@ public class CosmosDbService
             results.AddRange(response);
         }
 
-        return results;        
+        //Serialize List<Product> to a JSON string to send to OpenAI
+        string productsString = JsonSerializer.Serialize(results);
+        return productsString;      
     }
 
     /// <summary>
