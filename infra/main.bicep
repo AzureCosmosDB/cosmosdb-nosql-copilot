@@ -107,6 +107,7 @@ module web 'app/web.bicep' = {
       completionDeploymentName: ai.outputs.deployments[0].name
       embeddingDeploymentName: ai.outputs.deployments[1].name
       maxRagTokens: openAiSettings.maxRagTokens
+      maxContextTokens: openAiSettings.maxContextTokens
     }
     chatSettings: {
       maxContextWindow: chatSettings.maxContextWindow
