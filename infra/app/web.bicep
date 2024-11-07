@@ -19,6 +19,7 @@ type openAiOptions = {
   completionDeploymentName: string
   embeddingDeploymentName: string
   maxRagTokens: string
+  maxContextTokens: string
 }
 
 @description('Application configuration settings for OpenAI.')
@@ -90,6 +91,7 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       OPENAI__COMPLETIONDEPLOYMENTNAME: openAiSettings.completionDeploymentName
       OPENAI__EMBEDDINGDEPLOYMENTNAME: openAiSettings.embeddingDeploymentName
       OPENAI__MAXRAGTOKENS: openAiSettings.maxRagTokens
+      OPENAI__MAXCONTEXTTOKENS: openAiSettings.maxContextTokens
       COSMOSDB__ENDPOINT: databaseAccountEndpoint
       COSMOSDB__DATABASE: cosmosDbSettings.database
       COSMOSDB__CHATCONTAINER: cosmosDbSettings.chatContainer
