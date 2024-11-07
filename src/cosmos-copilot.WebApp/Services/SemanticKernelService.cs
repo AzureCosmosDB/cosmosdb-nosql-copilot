@@ -17,7 +17,7 @@ using System.Text.Json;
 namespace Cosmos.Copilot.Services;
 
 /// <summary>
-/// Semantic Kernel implementation for Azure OpenAI.
+/// Semantic Kernel implementation for Azure OpenAI and Azure Cosmos DB.
 /// </summary>
 public class SemanticKernelService
 {
@@ -42,16 +42,16 @@ public class SemanticKernelService
     /// System prompt to send with user prompts as a Retail AI Assistant for chat session
     /// </summary>
     private readonly string _systemPromptRetailAssistant = @"
-        You are an intelligent assistant for the Cosmic Works Bike Company. 
-        You are designed to provide helpful answers to user questions about 
-        bike products and accessories provided in JSON format below.
+       You are an intelligent assistant for the Cosmic Works Bike Company. 
+       You are designed to provide helpful answers to user questions about 
+       bike products and accessories provided in JSON format below.
 
-        Instructions:
-        - Only answer questions related to the information provided below,
-        - Don't reference any product data not provided below.
-        - If you're unsure of an answer, you can say ""I don't know"" or ""I'm not sure"" and recommend users search themselves.
+       Instructions:
+       - Only answer questions related to the information provided below,
+       - Don't reference any product data not provided below.
+       - If you're unsure of an answer, you can say ""I don't know"" or ""I'm not sure"" and recommend users search themselves.
 
-        Text of relevant information:";
+       Text of relevant information:";
 
     /// <summary>    
     /// System prompt to send with user prompts to instruct the model for summarization
@@ -201,7 +201,7 @@ public class SemanticKernelService
             resultRecords.Add(result);
         }
 
-        //Serialize List<Product> to a JSON string to send to OpenAI
+        //Serialize List<VectorSearchResult<Product>> to a JSON string to send to OpenAI
         string productsString = JsonSerializer.Serialize(resultRecords);
         return productsString;
     }
@@ -214,13 +214,11 @@ public class SemanticKernelService
     /// <returns>The reduced text</returns>
     private string TrimToTokenLimit(int maxTokens, string text)
     {
-
         // Get the index of the string up to the maxTokens
         int trimIndex = _tokenizer.IndexOfTokenCount(text, maxTokens, out string? processedText, out _);
 
         // Return the trimmed text based upon the maxTokens
         return text.Substring(0, trimIndex);
-
     }
 
     /// <summary>
@@ -310,9 +308,7 @@ public class SemanticKernelService
     /// <returns>The newly created product item</returns>
     public async Task<string> UpsertProductAsync(Product product)
     {
-        
         return await _productContainer.UpsertAsync(product);
-        
     }
 
     /// <summary>
@@ -321,16 +317,14 @@ public class SemanticKernelService
     /// <param name="product">Product item to delete.</param>
     public async Task DeleteProductAsync(Product product)
     {
-        
         var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
-        await _productContainer.DeleteAsync(compositeKey);
-        
+        await _productContainer.DeleteAsync(compositeKey);   
     }
 
     /// <summary>
     /// Generates a completion using a user prompt with chat history to Semantic Kernel and returns the response.
     /// </summary>
-    /// <param name="contextWindow">List of Message objects containign the context window (chat history) to send to the model.</param>
+    /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
     /// <returns>Generated response along with tokens used to generate it.</returns>
     public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
     {
@@ -356,10 +350,10 @@ public class SemanticKernelService
 
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
 
         string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        int tokens = completionUsage.OutputTokenCount;
 
         return (completion, tokens);
     }
