@@ -67,6 +67,9 @@ var containers = [
         {
           path: '/tags'
         }
+        {
+          path: '/description'
+        }
       ]
     }
     vectorEmbeddingPolicy: {
@@ -84,6 +87,10 @@ var containers = [
       fullTextPaths: [
         {
           path: '/tags'
+          language: 'en-US'
+        }
+        {
+          path: '/description'
           language: 'en-US'
         }
       ]
@@ -113,6 +120,9 @@ var containers = [
         {
           path: '/tags'
         }
+        {
+          path: '/description'
+        }
       ]
     }
     vectorEmbeddingPolicy: {
@@ -130,6 +140,10 @@ var containers = [
       fullTextPaths: [
         {
           path: '/tags'
+          language: 'en-US'
+        }
+        {
+          path: '/description'
           language: 'en-US'
         }
       ]
