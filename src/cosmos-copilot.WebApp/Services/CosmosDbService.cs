@@ -156,6 +156,54 @@ public class CosmosDbService
     }
 
     /// <summary>
+    /// Gets the current context window of chat messages for a specified session identifier.
+    /// </summary>
+    /// <param name="tenantId">Id of Tenant.</param>
+    /// <param name="userId">Id of User.</param>
+    /// <param name="sessionId">Chat session identifier used to filter messsages.</param>
+    /// <returns>List of chat message items for the specified session.</returns>
+    public async Task<List<Message>> GetSessionContextWindowAsync(string tenantId, string userId, string sessionId, int maxContextWindow)
+    {
+        PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
+
+        //Select the last N messages in the context window
+        //Using Top and Order By on the timestamp
+        string queryText = $"""
+            SELECT Top @maxContextWindow
+                *
+            FROM c  
+            WHERE 
+                c.tenantId = @tenantId AND 
+                c.userId = @userId AND
+                c.sessionId = @sessionId AND 
+                c.type = @type
+            ORDER BY 
+                c.timeStamp DESC
+            """;
+
+        QueryDefinition query = new QueryDefinition(query: queryText)
+            .WithParameter("@tenantId", tenantId)
+            .WithParameter("@userId", userId)
+            .WithParameter("@sessionId", sessionId)
+            .WithParameter("@type", nameof(Message))
+            .WithParameter("@maxContextWindow", maxContextWindow);
+
+        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+
+        List<Message> output = new();
+        while (results.HasMoreResults)
+        {
+            FeedResponse<Message> response = await results.ReadNextAsync();
+            output.AddRange(response);
+        }
+
+        //Reverse to put back into chronological order
+        output.Reverse();
+
+        return output;
+    }
+
+    /// <summary>
     /// Gets a list of all current chat messages for a specified session identifier.
     /// </summary>
     /// <param name="tenantId">Id of Tenant.</param>
