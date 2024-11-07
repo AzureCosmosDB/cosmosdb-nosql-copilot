@@ -85,119 +85,144 @@ Now it's time to make sure the application works as expected. In this step, buil
 1. Close the terminal. (Click the garbage can icon.)
 
 
-# Exercise: Implement the Azure OpenAI Service // TODO: update me!
+# Exercise: Implement the Semantic Kernel
 
-Let's implement the Azure Open AI Service so we can generate real responses from an LLM. This service contains three methods but we will only focus on the one that generates the main responses in our chat. The other generates a summary of the conversation displayed in the UI and another generates embeddings that we will use in a later exercise.
+Let's implement the Semantic Kernel Service so we can generate real responses from Azure OpenAI. Semantic Kernel is an open-source SDK for LLM orchestration created by Microsoft Research. It lets you easily build agents that can call your existing code. As a highly extensible SDK, you can use Semantic Kernel with models from OpenAI, Azure OpenAI, Hugging Face, and more! You can also connect it to various vector databases using built-in connectors, including Azure Cosmos DB. By combining your existing code with these models, you can build agents that answer questions and automate processes.
 
-## Generating completions from Azure OpenAI Service
+In this lab, we'll use two Semantic Kernel OpenAI Service Extensions and the Semantic Kernel Azure Cosmos DB NoSQL Vector Store connector. For now, let's add the OpenAI Chat Completion extension to generate responses from the LLM.
 
-We will implement the function that calls Azure OpenAI Service that generates a chat completion from an LLM for a given user prompt or question from a user. The function will return the text generated as well as the number of tokens to generate a response.
-
-1. Open the **Services/OpenAiService.cs** file.
-
-1. Within the **GetChatCompletionAsync()** method, comment out the existing placeholder code as seen below.
+1. Within the project, find the file **Services/SemanticKernelService.cs**. Locate the **SemanticKernelService()** constructor with the following signature. 
 
     ```csharp
-    public async Task<(string completion, int tokens)> GetChatCompletionAsync(string sessionId, List<Message> conversation)
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    ```
+
+1. Locate the call to **Kernel.CreateBuilder()** in the constructor. After this line, add the extension for OpenAI chat completions.
+
+    ```csharp
+    // Initialize the Semantic Kernel
+    var builder = Kernel.CreateBuilder();
+    
+    //Add Azure OpenAI chat completion service
+    builder.AddOpenAIChatCompletion(modelId: completionDeploymentName, openAIClient: openAiClient);
+    ```
+
+    The builder with this new line will initialize and inject a built-in service from OpenAI. **Chat Completion** handles completion generation from a GPT model.
+
+We will now implement the function that calls this Semantic Kernel extension to generate a chat completion for a given user prompt. The function will return the text generated as well as the number of tokens to generate a response.
+
+1. Within the same **SemanticKernelService.cs** file, locate the **GetChatCompletionAsync()** method. Below the line to create a new `ChatHistory()` object, comment the line adding a new system message and pass in the **_systemPrompt** value as seen below.
+
+    ```csharp
+    var skChatHistory = new ChatHistory();
+    skChatHistory.AddSystemMessage(_systemPrompt);
+    ```
+
+    Find the **_systemPrompt** definition at the top of this file. The system prompt instructs the LLM how to respond and allows developers to guide the model depending on their use case.
+
+1. Directly below this, add a `foreach` loop to add messages sent from the user to the `skChatHistory` we will send the LLM. We will get to why this is a *List* object in a future exercise. At this point, it only contains a single user prompt.
+
+    ```csharp
+    foreach (var message in contextWindow)
     {
-        //await Task.Delay(0);
-        //string completion = "Place holder response";
-        //int tokens = 0;
+        skChatHistory.AddUserMessage(message.Prompt);
+        if (message.Completion != string.Empty)
+            skChatHistory.AddAssistantMessage(message.Completion);
     }
     ```
-1. Create a string variable named **userMessage** that will do a string join on the **conversation** parameter. We will get to why this is a *List* object in a future exercise. At this point, it only contains a single user prompt.
+
+1. Next, we need to execute the call to Azure OpenAI using the Semantic Kernel extension we configured earlier. We will get the completion text and tokens consumed to return to the user. Locate the first three lines below and comment them out, then add the lines of code below the `foreach` loop from the previous step.
 
     ```csharp
-    string userMessage = string.Join(Environment.NewLine, conversation.Select(m => m.Prompt + " " + m.Completion));
-    ```
+    //string completion = "Place holder response";
+    //int tokens = 0;
+    //await Task.Delay(0);
 
-1. Create a new variable named **ChatCompletionsOptions** object named **options**. Then add the code as seen below.
-
-    ```csharp
-    ChatCompletionsOptions options = new()
+    PromptExecutionSettings settings = new()
     {
-        DeploymentName = _completionDeploymentName,
-        Messages = {
-            new ChatRequestSystemMessage(_systemPrompt),
-            new ChatRequestUserMessage(userMessage)
-        },
-        User = sessionId,
-        MaxTokens = 1000,
-        Temperature = 0.2f,
-        NucleusSamplingFactor = 0.7f
+        ExtensionData = new Dictionary<string, object>()
+        {
+            { "temperature", 0.2 },
+            { "top_p", 0.7 },
+            { "max_tokens", 1000  }
+        }
     };
+    var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+    ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
+
+    string completion = result.Items[0].ToString()!;
+    int tokens = completionUsage.OutputTokenCount;
     ```
 
-1. Next we will call the Azure OpenAI service's **GetChatCompletionsAsync()** function with our local client instance and pass the options variable created above and get the result in a Response object. Add the code as seen below.
+1. Save the file.
+
+We now need to take our completed Semantic Kernel service and use it in the **ChatService.cs** for our lab.
+
+1. Navigate to the **ChatService.cs** class and locate the **GetChatCompletionAsync()** function. We need to modify this function to use our new Semantic Kernel implementation. Locate the two placeholder lines below and comment them out. Then add the line to create a list of messages from the user prompt and call our Semantic Kernel service.
 
     ```csharp
-    Response<ChatCompletions> completionsResponse = await _client.GetChatCompletionsAsync(options);
+    //chatMessage.Completion = "Place holder response";
+    //chatMessage.CompletionTokens = 0;
+
+    List<Message> messages = new List<Message>() { chatMessage };
+    (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(messages);
     ```
 
-1. Next, we need to extract the completion text and tokens from the response object. Add the code as seen below.
-
-    ```csharp
-    ChatCompletions completions = completionsResponse.Value;
-    string completion = completions.Choices[0].Message.Content;
-    int tokens = completions.Usage.CompletionTokens;
-    ```
-
-1. Finally, ensure to return a tuple of the completion text and tokens for the function.
-
-    ```csharp
-    return (completion, tokens);
-    ```
-
-1. Once you have finished inserting all the code above, you can deleted the commented lines at the top of the function. 
-
-1. Save the **Services/OpenAiService.cs** file.
+1. Save the **ChatService.cs** file.
 
 ## Check your work
 
-At this point, your application has what must be implemented to test sample user prompts and completions generated by Azure OpenAI Service.
+At this point, your application is ready to test our Semantic Kernel implementation to get completions generated by Azure OpenAI Service. Let's run our application and test it.
 
-1. Open a new terminal and start the application using **dotnet run**.
+1. Return to the terminal and run it using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code will launch the in-tool browser again with the web application running. 
+1. Visual Studio Code launches the in-tool simple browser again with the web application running. 
 
-1. In the web application, create a new chat session and ask the AI assistant this question, `What is the largest lake in North America?`. The AI assistant now responds with a completion created by Azure OpenAI Service saying that `Lake Superior` is the largest lake, with some additional information. You should also notice that the *token* UI fields are now populated with actual token usage for the completion.
+1. Let's test our new completions implementation. Type in a new question, `What is the most expensive bike?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information.
 
-     ![real-completion.png](images/real-completion.png)
-
-1. Close the terminal. (Click the garbage can)
+1. Close the terminal.
 
 <details>
     <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
 
 </br>
  
-Review the **GetChatCompletionAsync()** method of the **OpenAiService.cs** code file to make sure that your code matches this sample.
+Review the **GetChatCompletionAsync()** function in the **SemanticKernelService.cs** to make sure that your code matches this sample.
  
     ```csharp
-    public async Task<(string completion, int tokens)> GetChatCompletionAsync(string sessionId, List<Message> conversation)
+    public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
     {
-        string userMessage = string.Join(Environment.NewLine, conversation.Select(m => m.Prompt + " " + m.Completion));
-        ChatCompletionsOptions options = new()
+        var skChatHistory = new ChatHistory();
+        skChatHistory.AddSystemMessage(_systemPrompt);
+
+        foreach (var message in contextWindow)
         {
-            Messages =
-            DeploymentName = _completionDeploymentName,
-            {
-                new ChatRequestSystemMessage(_systemPrompt),      
-                new ChatRequestUserMessage(userMessage)
-            },
-            User = sessionId,
-            MaxTokens = 4000,
-            Temperature = 0.2f,
-            NucleusSamplingFactor = 0.7f
+           skChatHistory.AddUserMessage(message.Prompt);
+           if (message.Completion != string.Empty)
+               skChatHistory.AddAssistantMessage(message.Completion);
+        }
+
+        PromptExecutionSettings settings = new()
+        {
+           ExtensionData = new Dictionary<string, object>()
+           {
+               { "temperature", 0.2 },
+               { "top_p", 0.7 },
+               { "max_tokens", 1000  }
+           }
         };
-        Response<ChatCompletions> completionsResponse = await _client.GetChatCompletionsAsync(options);
-        ChatCompletions completions = completionsResponse.Value;
-        string completion = completions.Choices[0].Message.Content;
-        int tokens = completions.Usage.CompletionTokens;
+        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+        ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
+
+        string completion = result.Items[0].ToString()!;
+        int tokens = completionUsage.OutputTokenCount;
+
         return (completion, tokens);
     }
     ```
@@ -218,7 +243,7 @@ Humans interact with each other through conversations that have some *context* o
     dotnet run
     ```
 
-1. In the web application, create a new chat session and ask the AI assistant the same question again, `What are the most expensive bikes?`. And wait for the response, "24K Gold Extreme Mountain Bike" priced at $1 million. 
+1. In the web application, create a new chat session and ask the AI assistant the same question again, `What is the most expensive bike?`. And wait for the response, "24K Gold Extreme Mountain Bike" priced at $1 million. 
 
 1. Ask this follow up question. `What about the least expensive?`. The response generated should look like the one below and will either have nothing to do with your first question, or the LLM may respond it needs more context to give you an answer.
 
@@ -265,7 +290,7 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
     public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string sessionId, string promptText)
     ```
 
-1. Find the two lines below initializing the **chatMessage** variable and comment them out. Then add the two new lines as seen below. This calls the the function to get the context window that we just updated, and passes the context window to the Semantic Kernel Service to get a completion from Azure OpenAI.
+1. Comment out the two lines below initializing the **messages** variable and passing it to the Semantic Kernel service. Then add the two new lines as seen below. This calls the the function to get the context window that we just updated, and passes the context window to the Semantic Kernel Service to get a completion from Azure OpenAI.
 
     ```csharp
     //List<Message> messages = new List<Message>() { chatMessage };
@@ -275,6 +300,8 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
     List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
     (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(contextWindow);
     ```
+
+    Now we are passing in a list of messages that represents the conversation history in order to get our contextually relevant completion. This is why we had to implement **GetChatCompletionAsync()** to take a list of prompts, rather than taking a single prompt representing the current user message alone.
 
 1. Save the **Services/ChatService.cs** file.
 
@@ -290,7 +317,7 @@ You are now ready to test your context window implementation.
 
 1. Visual Studio Code will launch the in-tool simple browser again with the web application running. 
 
-1. In the web application, create a new chat session and ask the AI assistant this question, `What are the most expensive bikes?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What are the least expensive?`. You should see some inexpensive bike options.
+1. In the web application, create a new chat session and ask the AI assistant this question, `What is the most expensive bike?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What about the least expensive?`. You should see some inexpensive bike options.
  
  ![with-conversation-history.png](images/with-conversation-history.png) // TODO: update this image!
 
@@ -306,10 +333,6 @@ Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file
     ```csharp
     public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string sessionId, string promptText)
     {
-        ArgumentNullException.ThrowIfNull(tenantId);
-        ArgumentNullException.ThrowIfNull(userId);
-        ArgumentNullException.ThrowIfNull(sessionId);
-
        //Create a message object for the new user prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
 
@@ -337,9 +360,125 @@ This workflow for RAG Pattern generally maps to the following steps:
 1. The search results, the context window (chat history), and the latest user prompt are sent to the LLM.
 1. The LLM processes all of the text in the payload and generates a response.
 
+## Generate embeddings from the user prompt
+
+First, we need to add the OpenAI embeddings generation extension to our Semantic Kernel service.
+
+1. Within **Services/SemanticKernelService.cs**, locate the **SemanticKernelService()** constructor with the following signature. 
+
+    ```csharp
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    ```
+
+1. We already added the OpenAI chat completion extension in the previous exercise. Directly after that line, add the extension for OpenAI embedding generation. The two lines to add OpenAI extensions should look like this
+
+    ```csharp
+    //Add Azure OpenAI chat completion service
+    builder.AddOpenAIChatCompletion(modelId: completionDeploymentName, openAIClient: openAiClient);
+
+    //Add Azure OpenAI text embedding generation service
+    builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
+    ```
+
+1. Navigate further down in this class to **GetEmbeddingsAsync()**. Comment out the two lines below, and adding the two new lines. The new code uses the built-in embedding service to generate vectors out of the user text. Then, it converts the result to an array of floats.
+
+     ```csharp
+    //await Task.Delay(0);
+    //float[] embeddingsArray = new float[0];
+
+    var embeddings = await kernel.GetRequiredService<ITextEmbeddingGenerationService>().GenerateEmbeddingAsync(text);
+    float[] embeddingsArray = embeddings.ToArray();
+    ```
+
+1. Save the file.
+
+1. Let's make sure the code compiles. Return to the terminal and compile it using **dotnet build**.
+
+    ```bash
+        dotnet build
+    ```
+
+1. If the code compiles with no errors, move on to the next step.
+
+<details>
+    <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
+
+</br>
+ 
+Review the **SemanticKernelService()** constructor in **SemanticKernelService.cs** to make sure that your code matches this sample.
+
+    ```csharp
+    public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
+    {
+        var completionDeploymentName = openAIOptions.Value.CompletionDeploymentName;
+        var embeddingDeploymentName = openAIOptions.Value.EmbeddingDeploymentName;
+        var maxRagTokens = openAIOptions.Value.MaxRagTokens;
+        var maxContextTokens = openAIOptions.Value.MaxContextTokens;
+
+        var databaseName = cosmosOptions.Value.Database;
+        var productContainerName = cosmosOptions.Value.ProductContainer;
+        var productDataSourceURI = cosmosOptions.Value.ProductDataSourceURI;
+
+        ArgumentNullException.ThrowIfNullOrEmpty(completionDeploymentName);
+        ArgumentNullException.ThrowIfNullOrEmpty(embeddingDeploymentName);
+        ArgumentNullException.ThrowIfNullOrEmpty(maxRagTokens);
+        ArgumentNullException.ThrowIfNullOrEmpty(maxContextTokens);
+        ArgumentNullException.ThrowIfNullOrEmpty(databaseName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productContainerName);
+        ArgumentNullException.ThrowIfNullOrEmpty(productDataSourceURI);
+
+        //Set the product data source URI for loading data
+        _productDataSourceURI = productDataSourceURI;
+
+        // Initialize the Semantic Kernel
+        var builder = Kernel.CreateBuilder();
+
+        //Add Azure OpenAI chat completion service
+        builder.AddOpenAIChatCompletion(modelId: completionDeploymentName, openAIClient: openAiClient);
+
+        //Add Azure OpenAI text embedding generation service
+        builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
+
+        //Add Azure CosmosDB NoSql client and Database to the Semantic Kernel
+        builder.Services.AddSingleton<Database>(
+            sp =>
+            {
+                var client = cosmosClient;
+                return client.GetDatabase(databaseName);
+            });
+
+        // Add the Azure CosmosDB NoSQL Vector Store Record Collection for Products
+        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product> { PartitionKeyPropertyName = "categoryId" };
+        builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
+
+        kernel = builder.Build();
+
+       //Get a reference to the product container from Semantic Kernel for vector search and adding/updating products
+       _productContainer = (AzureCosmosDBNoSQLVectorStoreRecordCollection<Product>)kernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, Product>>();
+
+        //Create a tokenizer for the model
+        _tokenizer = Tokenizer.CreateTiktokenForModel(modelName: "gpt-4o");
+        _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens: 3000;
+        _maxContextTokens = Int32.TryParse(maxContextTokens, out _maxContextTokens) ? _maxContextTokens : 1000;
+    }
+    ```
+
+Review the **GetEmbeddingsAsync()** function to make sure that your code matches this sample.
+ 
+    ```csharp
+    public async Task<float[]> GetEmbeddingsAsync(string text)
+    {
+        var embeddings = await kernel.GetRequiredService<ITextEmbeddingGenerationService>().GenerateEmbeddingAsync(text);
+        float[] embeddingsArray = embeddings.ToArray();
+        
+        return embeddingsArray;
+    }
+    ```
+</details>
+
 ## Vector Search on user data
 
-The first step is to implement the vector search query in our application.
+The next step is to implement the vector search query in our application.
 
 1. Navigate to the **SemanticKernelService.cs** class and locate the **SearchProductsAsync()** function with the following signature. 
 
@@ -359,11 +498,11 @@ The first step is to implement the vector search query in our application.
     var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
     ```
 
-    This code does a few things including:
+    This code uses the Semantic Kernel Azure Cosmos DB NoSQL Vector Store connector to:
 
-    1. Uses `VectorPropertyName` in the `VectorSearchOptions` to indicate which property in the Azure Cosmos DB document contains the vectors to search against.
-    1. Uses `Top` to limit the number of products that are returned by the search. Because LLM's can only process so much text at once, it is necessary to limit the amount of data returned by a vector search. The `productMaxResults` value limits that amount of data and because this is something you will need to adjust when doing vector searches, it is config value in this application.
-    1. Calls the `VectorizedSearchAsync()` function in the Semantic Kernel connector to perform vector search using the passed-in vectors generated by the user prompt. This automatically orders the results by the similarity score from most semantically relevant to least relevant.
+    1. Indicate which property in the Azure Cosmos DB document contains the vectors to search against using `VectorPropertyName` in the `VectorSearchOptions`.
+    1. Limit the number of products that are returned by the search using `Top`. Because LLM's can only process so much text at once, it is necessary to limit the amount of data returned by a vector search. The `productMaxResults` value limits that amount of data and because this is something you will need to adjust when doing vector searches, it is config value in this application.
+    1. Call the `VectorizedSearchAsync()` function in the Semantic Kernel connector. This performs vector search using the passed-in vector embeddings generated by the user prompt. The function automatically orders the results by the similarity score from most semantically relevant to least relevant.
 
 1. After this block of code, add the following lines before the existing return statement. This loops through the vector search results and serializes all products as a single string.
 
@@ -541,7 +680,7 @@ Finally, if the responses do not include any information on the bike products be
 
         //Add the system prompt and vector search data to the chat history
         var skChatHistory = new ChatHistory();
-        //skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + ragData);
+        skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + ragData);
 
         //Manage token consumption by trimming the amount of chat history sent to the model
         //Useful if the chat history is very large. It can also be summarized before sending to the model
@@ -555,7 +694,6 @@ Finally, if the responses do not include any information on the bike products be
             skChatHistory.AddUserMessage(message.Prompt);
             if (message.Completion != string.Empty)
                 skChatHistory.AddAssistantMessage(message.Completion);
-            
         }
 
         PromptExecutionSettings settings = new()
