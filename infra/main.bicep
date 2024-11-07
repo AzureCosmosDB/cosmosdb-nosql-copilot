@@ -13,6 +13,7 @@ param environmentName string
   'uksouth'
   'northeurope'
   'westus3'
+  'northcentralus'
 ])
 @description('Primary location for all resources.')
 param location string
