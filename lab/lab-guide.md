@@ -278,7 +278,7 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
 
 1. Save the **Services/ChatService.cs** file.
 
-## Check your work // TODO: update me
+## Check your work
 
 You are now ready to test your context window implementation.
 
@@ -290,9 +290,9 @@ You are now ready to test your context window implementation.
 
 1. Visual Studio Code will launch the in-tool simple browser again with the web application running. 
 
-1. In the web application, create a new chat session and ask the AI assistant this question, `What is the largest lake in North America?`. The AI assistant now responds with a completion created by the model saying that `Lake Superior` is the largest lake, with some additional information. Now the second question again, `What is the second largest?`. You should see the response as `Lake Huron` which is the correct response.
+1. In the web application, create a new chat session and ask the AI assistant this question, `What are the most expensive bikes?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What are the least expensive?`. You should see some inexpensive bike options.
  
- ![with-conversation-history.png](images/with-conversation-history.png)
+ ![with-conversation-history.png](images/with-conversation-history.png) // TODO: update this image!
 
 1. Close the terminal. (click the garbage can icon)
 
@@ -564,7 +564,7 @@ Finally, if the responses do not include any information on the bike products be
             {
                 { "temperature", 0.2 },
                 { "top_p", 0.7 },
-                { "max_tokens", 1000  }  //TODO: This doesn't appear to do anything
+                { "max_tokens", 1000  }
             }
         };
 
