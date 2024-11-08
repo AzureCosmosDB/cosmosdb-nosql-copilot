@@ -346,26 +346,33 @@ To limit the maximum amount of chat history (and text) we send to our LLM, we wi
 
 ## Building a context window using tokens
 
-For this exercise we will implement the **GetChatSessionContextWindow()** function in the **Services/ChatService.cs** class and modify another function, **GetChatCompletionAsync()** that will call the first function to build our chat history.
+For this exercise we will implement the **GetSessionContextWindowAsync()** function in the **Services/CosmosDbService.cs** class to build our chat history.
 
-1. Within the **ChatService.cs** class locate the **GetChatSessionContextWindow()** method with the following signature. 
-
-    ```csharp
-        private async Task<List<Message>> GetChatSessionContextWindow(string tenantId, string userId, string sessionId)
-    ```
-
-1. Comment out the placeholder lines in this function and add the code below. The **allMessages** variable stores the entire chat history for a session fetched from the Cosmos DB Service. We use the `_maxContextWindow` setting to take the most recent messages in the conversation and return them as the context window for the conversation. Recency matters in a conversation, the most recent text is what we want closer to the actual question. Counting the number of messages allows us to control the total number of tokens used while still providing relevant context.
+1. Within the **CosmosDbService.cs** class locate the **GetSessionContextWindowAsync()** method with the following signature. 
 
     ```csharp
-    //await Task.Delay(0);
-    //return new List<Message>();
-    
-    List<Message> allMessages = await _cosmosDbService.GetSessionMessagesAsync(tenantId, userId, sessionId);
- 
-    //Build the contextWindow from allMessages, start from the end and work backwards
-    //This includes the latest user prompt which is already cached
-    return allMessages.TakeLast(_maxContextWindow).ToList();
+    public async Task<List<Message>> GetSessionContextWindowAsync(string tenantId, string userId, string sessionId, int maxContextWindow)
     ```
+
+1. Comment out the placeholder query text in this function and add the query below. This selects the most recent number of messages in the chat session depending on the `maxContextWindow` variable.
+
+    ```csharp
+    //string queryText = "";
+    string queryText = $"""
+        SELECT Top @maxContextWindow
+            *
+        FROM c  
+        WHERE 
+            c.tenantId = @tenantId AND 
+            c.userId = @userId AND
+            c.sessionId = @sessionId AND 
+            c.type = @type
+        ORDER BY 
+            c.timeStamp DESC
+        """;
+    ```
+
+    After querying for the most recent messages in Azure Cosmos DB, we reverse put them back in order in reverse. Recency matters in a conversation, the most recent text is what we want closer to the actual question. Counting the number of messages allows us to control the total number of tokens used while still providing relevant context.
 
 1. Next, within the **ChatService.cs** class, locate **GetChatCompletionAsync()** with the following signature. 
 
@@ -379,8 +386,9 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
     //List<Message> messages = new List<Message>() { chatMessage };
     //(chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(messages);
 
-    //Grab context window from the conversation history up to the maximum conversation depth
-    List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
+    //Get the context window for this conversation up to the maximum conversation depth.
+    List<Message> contextWindow = 
+        await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
     (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(contextWindow);
     ```
 
@@ -417,8 +425,9 @@ Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file
        //Create a message object for the new user prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
 
-        //Grab context window from the conversation history up to the maximum configured tokens
-        List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
+        //Get the context window for this conversation up to the maximum conversation depth.
+        List<Message> contextWindow = 
+            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
         (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
 
         await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
@@ -659,8 +668,9 @@ The last step for our RAG Pattern implementation is to modify our LLM pipeline f
 1. First, we need to get vector embeddings from the user prompts. Below the call to get the context window, add two lines to concatenate the context window as one string and to generate vector embeddings. This call to `GetEmbeddingsAsync()` generates vector embeddings out of the user prompt using Semantic Kernel and Azure OpenAI.
 
     ```csharp
-        //Grab context window from the conversation history up to the maximum conversation depth
-        List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
+        //Get the context window for this conversation up to the maximum conversation depth.
+        List<Message> contextWindow = 
+            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
 
         //Grab the user prompts for the context window
         string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
@@ -899,8 +909,9 @@ Review the **GetChatCompletionAsync()** method of the **ChatService.cs** code fi
         //Create a message object for the new User Prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
         
-        //Grab context window from the conversation history up to the maximum conversation depth
-        List<Message> contextWindow = await GetChatSessionContextWindow(tenantId, userId, sessionId);
+        //Get the context window for this conversation up to the maximum conversation depth.
+        List<Message> contextWindow = 
+            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
 
         //Grab the user prompts for the context window
         string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
