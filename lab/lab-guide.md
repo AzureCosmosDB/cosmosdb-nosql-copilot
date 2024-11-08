@@ -14,75 +14,106 @@ This lab guides you through the steps to implement generative AI capabilities fo
 1. Implement and test a semantic cache for improved performance.
 
 
-# Prepare // TODO: environment contains pre-deployed resources, consider deleting from lab
+# Exercise: Setup and run the starter web application
 
-You're updating an existing .NET solution that has an ASP.NET Blazor application as its sole project. This project includes service classes using Azure Cosmos DB and Azure OpenAI that need to connect to the deployed services in Azure.
+Before we implement new functionality in this project, we need to set up authentication and ensure the existing starter application builds and runs successfully. 
 
-Before moving to the next step, ensure you have completed the **Service Deployment** as well as the **Configuring a lab environment** in the [README File](../README.md).
-
-Once this is complete, you may begin the lab.
-
-
-# Exercise: Setup and run the starter web application // TODO: update me!
-
-The first step of this project is to ensure the existing starter application builds and runs successfully.
-
-There are a few requirements in this exercise:
-
-- Successfully build the application.
-- Run the application using the **Hot Reload** feature of .NET
-
-### Configure dev environment
-
-The [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) for Visual Studio Code requires [Docker](https://docs.docker.com/) to be installed on your local machine. The extension hosts the development container locally using the Docker host with the correct developer tools and dependencies preinstalled to complete this training module.
-
-This lab assumes the use of Visual Studio Code. However, you may use any IDE you wish.
-
-1. Open a local **Terminal or Shell**. Change the current working directory where you cloned this application, for example, **C:\Users\Mark\Repos\cosmosdb-chatgpt\src**.
+1. Open a local **Terminal** and change the current working directory to where the application has already been downloaded for you.
 
     ```bash
-    cd C:\Users\Mark\Repos\cosmosdb-no-sql-copilot\src
+    cd C:\Users\Admin\Repos\cosmosdb-no-sql-copilot
     ```
 
-1. Use the **devcontainer CLI** to open the current folder as a development container.
+1. Open the project in Visual Studio Code with the following command.
 
     ```bash
-    devcontainer open
+    code .
     ```
 
-1. Within **Visual Studio Code**, open a new terminal.
+1. Within Visual Studio Code, open a new terminal. You can open a new terminal using **Terminal > New Terminal** from the toolbar in VS Code or enter **CTRL + SHIFT + `**.
 
-**NOTE:** The remaining exercises in this hands-on lab take place in the context of this development container.
+## Configure authentication
+
+To access our Azure resources, we need to be authenticated from our terminal in Visual Studio Code. Then we need to set up the role assignments required to access Azure OpenAI and Azure Cosmos DB.
+
+1. In the same terminal we just opened, change directories to **infra/scripts**.
+
+    ```bash
+    cd infra/scripts
+    ```
+
+1. Log in to the Azure CLI using the credentials provided to you in the lab VM environment.
+
+    ```bash
+    az login
+    ```
+
+1. You will see a pop-up for choosing which account you want to sign in to. Select **Work or school account** and click **Continue**.
+
+    ![az-login-1.png](../media/az-login-1.png)
+
+1. Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment.
+
+    ![az-login-2.png](../media/az-login-2.png)
+
+1. After entering your credentials, you should see a page asking you if you want to stay signed in to all your apps. Enter **Ok**.
+
+1. Then, you will see another page saying that you're all set. Enter **Done**.
+
+1. Finally, after all pop-ups have been cleared, confirm the subscription back in the terminal. There will only be one subscription id listed, enter **1** in the terminal to confirm your subscription.
+
+1. Now that we are authenticated to the Azure CLI, run the script to configure the necessary role assignments for your user. This will allow you to access Azure Cosmos DB and Azure OpenAI using Microsoft Entra ID.
+
+    ```bash
+    ./azd-role-assignments.sh
+    ```
+
+    You should see two output objects. The first is the role assignment for Azure OpenAI and the second is the role assignment for Azure Cosmos DB.
 
 ## Build and run the application for the first time
 
 Now it's time to make sure the application works as expected. In this step, build the application to verify that there's no issues before we get started.
 
-1. Open a new terminal.
-
-1. Build the application using [dotnet build](https://learn.microsoft.com/dotnet/core/tools/dotnet-build).
+1. In the same terminal, change directories then run **dotnet workload restore** to install the `aspire` workload.
 
     ```bash
-    dotnet build
+    cd ../../src/cosmos-copilot.AppHost
+    dotnet workload restore
+    ```
+1. You will get a pop-up asking if you want to allow this app to make changes to your device. Enter **Yes**.
+
+    ![dotnet-workload-restore.png](../media/dotnet-workload-restore.png)
+
+1. Before we run the application locally, we need to trust the https developer certificate that .NET will generate for us.
+
+    ```bash
+    dotnet dev-certs https --clean
+    dotnet dev-certs https --trust
     ```
 
-1. The Terminal should display a successful build.
+1. You will see another pop-up asking you if you want to install the certificate. Enter **Yes**.
 
-1. At this point, your app has enough information to also run but not enough to generate a real response from an LLM. Let's run the application to make sure your code doesn't have any omissions or errors.
+    ![trust-dev-certs.png](../media/trust-dev-certs.png)
 
-1. Return to the terminal in VS Code.
-
-1. Run the .NET project.
+1. At this point, your app has enough information to run but not enough to generate a real response from an LLM. Let's run the application to make sure your code doesn't have any omissions or errors.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code launches an in-tool simple browser with the web application running. In the web application, create a new chat session and ask the AI assistant this question, `What is the largest lake in North America?`. The AI assistant will respond with text, **"Place holder response"** and a token value of zero.
+1. To test our application, launch the .NET Aspire Dashboard by clicking the link provided in the console output. Your output should look something like the image below. `CTRL + click` on the link to localhost with the login information appended to the end of it. This will automatically open the dashboard in a web browser.
 
-![fake-completion.png](images/fake-completion.png)
+    ![launch-aspire-dashboard.png](../media/launch-aspire-dashboard.png)
 
-1. Close the terminal. (Click the garbage can icon.)
+1. In the web application, launch the `webfrontend` by clicking on the `http://localhost:8100` endpoint.
+
+    ![aspire-dashboard.png](../media/aspire-dashboard.png)
+
+1. Create a new chat and enter `What is the most expensive bike?`. The AI assistant will respond with text, **"Placeholder response"** and a token value of zero.
+
+    ![create-new-chat.png](../media/create-new-chat.png)
+
+1. Close the web browser and end the process in the terminal by entering `CTRL + c`. Don't close the terminal entirely. We'll use the same terminal process throughout this entire lab.
 
 
 # Exercise: Implement the Semantic Kernel
@@ -155,6 +186,32 @@ We will now implement the function that calls this Semantic Kernel extension to 
     int tokens = completionUsage.OutputTokenCount;
     ```
 
+1. We'll also use the chat completion extension to generate a summary of the chat. In the same **SemanticKernelService.cs** file, locate the **SummarizeConversationAsync()** method. Comment out the placeholder code and add the following before the existing return statement.
+
+    ```csharp
+    //await Task.Delay(0);
+    //string completion = "Placeholder summary";
+
+    var skChatHistory = new ChatHistory();
+    skChatHistory.AddSystemMessage(_summarizePrompt);
+    skChatHistory.AddUserMessage(conversation);
+
+    PromptExecutionSettings settings = new()
+    {
+        ExtensionData = new Dictionary<string, object>()
+        {
+            { "temperature", 0.0 },
+            { "top_p", 1.0 },
+            { "max_tokens", 100 }
+        }
+    };
+    var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+    string completion = result.Items[0].ToString()!;
+    ```
+
+    This code has a similar flow to build the prompts for generating a completion using the Semantic Kernel OpenAI chat completion extension, however notice the system prompt we're passing in is different. The `_summarizePrompt` instructs the model to provide a short summary that we will use to name the chat.
+
 1. Save the file.
 
 We now need to take our completed Semantic Kernel service and use it in the **ChatService.cs** for our lab.
@@ -224,6 +281,32 @@ Review the **GetChatCompletionAsync()** function in the **SemanticKernelService.
         int tokens = completionUsage.OutputTokenCount;
 
         return (completion, tokens);
+    }
+    ```
+
+Review the **SummarizeConversationAsync()** function in the **SemanticKernelService.cs** to make sure that your code matches this sample.
+ 
+    ```csharp
+    public async Task<string> SummarizeConversationAsync(string conversation)
+    {
+        var skChatHistory = new ChatHistory();
+        skChatHistory.AddSystemMessage(_summarizePrompt);
+        skChatHistory.AddUserMessage(conversation);
+
+        PromptExecutionSettings settings = new()
+        {
+            ExtensionData = new Dictionary<string, object>()
+            {
+                { "temperature", 0.0 },
+                { "top_p", 1.0 },
+                { "max_tokens", 100 }
+            }
+        };
+        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+        string completion = result.Items[0].ToString()!;
+
+        return completion;
     }
     ```
 </details>
