@@ -54,7 +54,7 @@ var openAiSettings = {
   maxContextTokens: '500'
 }
 
-var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'
+var productDataSourceUri = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'
 
 var principalType = 'User'
 
@@ -101,7 +101,7 @@ module web 'app/web.bicep' = {
       chatContainer: database.outputs.containers[0].name
       cacheContainer: database.outputs.containers[1].name
       productContainer: database.outputs.containers[2].name
-      productDataSource: productDataSource
+      productDataSourceUri: productDataSourceUri
     }
     openAiSettings: {
       completionDeploymentName: ai.outputs.deployments[0].name
@@ -151,7 +151,7 @@ output AZURE_COSMOS_DB_DATABASE_NAME string = database.outputs.database.name
 output AZURE_COSMOS_DB_CHAT_CONTAINER_NAME string = database.outputs.containers[0].name
 output AZURE_COSMOS_DB_CACHE_CONTAINER_NAME string = database.outputs.containers[1].name
 output AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME string = database.outputs.containers[2].name
-output AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE string = productDataSource
+output AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE_URI string = productDataSourceUri
 
 // AI outputs
 output AZURE_OPENAI_ACCOUNT_ENDPOINT string = ai.outputs.endpoint
