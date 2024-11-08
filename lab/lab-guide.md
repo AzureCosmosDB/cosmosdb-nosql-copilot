@@ -1,11 +1,11 @@
 # Serverless GenAI Apps with Semantic Kernel, Azure Cosmos DB & .NET Aspire
 
-In this hands-on lab, we will build serverless, AI RAG applications using .NET Aspire, Semantic Kernel and Azure Cosmos DB with DiskANN, vector search, and full-text search capabilities! You will learn how to implement Semantic Kernel Azure OpenAI extensions, NoSQL connectors, and semantic caching! Gain practical insights into how to design, build, deploy and scale RAG pattern applications in Azure! The skills in this lab will give you a solid foundation to create your own generative AI applications. Its recommended to have C# or other programming language experience before completing this lab.
+In this hands-on lab, we will build serverless, AI RAG applications using .NET Aspire, Semantic Kernel and Azure Cosmos DB with DiskANN and vector search! You will learn how to implement Semantic Kernel Azure OpenAI extensions, NoSQL connectors, and semantic caching. Gain practical insights into how to design, build, deploy and scale RAG pattern applications in Azure! The skills in this lab will give you a solid foundation to create your own generative AI applications. Its recommended to have C# or other programming language experience before completing this lab.
 
 
 ## What are we doing?
 
-This lab guides you through the steps to implement generative AI capabilities for a ASP.NET Core Blazor application with Azure Cosmos DB for NoSQL and Azure OpenAI service integration using Semantic Kernel and .NET Aspire. These are the main tasks you will accomplish in this lab.
+This lab guides you through the steps to implement generative AI capabilities for an ASP.NET Core Blazor application with Azure Cosmos DB for NoSQL and Azure OpenAI service integration using Semantic Kernel and .NET Aspire. These are the main tasks you will accomplish in this lab.
 
 1. Connect to the application and explore the .NET Aspire dashboard. 
 1. Implement Semantic Kernel to coordinate sending user prompts to a Chat GPT model in Azure OpenAI Service and store the responses in Azure Cosmos DB.
@@ -52,15 +52,15 @@ To access our Azure resources, we need to be authenticated from our terminal in 
 
     ![az-login-1.png](../media/az-login-1.png)
 
-1. Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment. Ensure you use the Azure credentials provided, this is different than the username and password used to sign in to the VM. Your username should look something like `azureuser-45536656@LODSPRODMCA.onmicrosoft.com`. 
+1. You should see a new pop-up asking you to sign in. Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment. Ensure you use the Azure credentials provided, this is different than the username and password used to sign in to the VM. Your username should look something like `azureuser-45536656@LODSPRODMCA.onmicrosoft.com`. If you don't see this pop-up, you may need to minimize Visual Studio Code.
 
     ![az-login-2.png](../media/az-login-2.png)
 
-1. After entering your credentials, you should see a page asking you if you want to stay signed in to all your apps. Enter **Ok**.
+1. After entering your credentials, you should see a page asking you if you want to stay signed in to all your apps. Select **Ok**.
 
-1. Then, you will see another page saying that you're all set. Enter **Done**.
+1. Then, you will see another page saying that you're all set. Select **Done**.
 
-1. Finally, after all pop-ups have been cleared, confirm the subscription back in the terminal. There will only be one subscription id listed, enter **1** in the terminal to confirm your subscription.
+1. Finally, after all pop-ups have been cleared, confirm the subscription back in the terminal in Visual Studio Code. There will only be one subscription id listed, enter **1** in the terminal to confirm your subscription.
 
 1. Now that we are authenticated to the Azure CLI, run the script to configure the necessary role assignments for your user. This will allow you to access Azure Cosmos DB and Azure OpenAI using Microsoft Entra ID.
 
@@ -87,7 +87,7 @@ Now it's time to make sure the application works as expected. In this step, buil
     dotnet dev-certs https --trust
     ```
 
-1. You will see another pop-up asking you if you want to install the certificate. Enter **Yes**.
+1. You will see another pop-up asking you if you want to install the certificate. Select **Yes**.
 
     ![trust-dev-certs.png](../media/trust-dev-certs.png)
 
@@ -101,15 +101,17 @@ Now it's time to make sure the application works as expected. In this step, buil
 
     ![launch-aspire-dashboard.png](../media/launch-aspire-dashboard.png)
 
+    If you get a certificate not trusted message on the web browser, close the browser and `CTRL + click` on the dashboard link again.
+
 1. The .NET Aspire dashboard has pages to manage all project resources, view console output, structured logs, traces for each request, and metrics emitted by various libraries. In the dashboard, launch our chat application by clicking on the `http://localhost:8100` endpoint.
 
     ![aspire-dashboard.png](../media/aspire-dashboard.png)
 
-1. Create a new chat and enter `What are the most expensive bikes?`. The AI assistant will respond with text, **"Placeholder response"** and a token value of zero.
+1. Create a new chat and enter `What are the most expensive bikes?`. The AI assistant will respond with text, **"Place holder response"** and a token value of zero.
 
     ![create-new-chat.png](../media/create-new-chat.png)
 
-1. Close the web browser and end the process in the terminal by entering `CTRL + C`. Don't close the terminal entirely. We'll use the same terminal process throughout this entire lab. 
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`. Don't close the terminal entirely. We'll use the same terminal session throughout this entire lab. 
 
 Every time we run the application locally, we will do it from the **src/cosmos-copilot.AppHost** directory you are already in. All updates to the application will be to files in the **src/cosmos-copilot.WebApp** directory and it's folders.
 
@@ -149,7 +151,7 @@ We will now implement the function that calls this Semantic Kernel extension to 
 
     Find the `_systemPrompt` definition at the top of this file. The system prompt instructs the LLM how to respond and allows developers to guide the model depending on their use case.
 
-1. Directly below this, add a **foreach** loop to prepare messages from the user to be sent to the LLM. We will get to why this is a *List* object in a future exercise. At this point, it only contains a single user prompt.
+1. Inside the **GetChatCompletionAsync()** method directly below adding the system message, add a **foreach** loop to prepare messages from the user to be sent to the LLM. We will get to why this is a *List* object in a future exercise. At this point, it only contains a single user prompt.
 
     ```csharp
     foreach (var message in contextWindow)
@@ -160,7 +162,7 @@ We will now implement the function that calls this Semantic Kernel extension to 
     }
     ```
 
-1. Next, we need to execute the call to Azure OpenAI using the Semantic Kernel extension we configured earlier. We will get the completion text and tokens consumed to return to the user. Locate the first three lines below and comment them out, then add the lines of code below the **foreach** loop from the previous step.
+1. Next, we need to execute the call to Azure OpenAI using the Semantic Kernel extension we configured earlier. We will get the completion text and tokens consumed to return to the user. Locate the first three lines below and comment them out, then add the lines of code below.
 
     ```csharp
     //string completion = "Place holder response";
@@ -372,7 +374,7 @@ For this exercise we will implement the **GetSessionContextWindowAsync()** funct
         """;
     ```
 
-    After querying for the most recent messages in Azure Cosmos DB, we reverse put them back in order in reverse. Recency matters in a conversation, the most recent text is what we want closer to the actual question. Counting the number of messages allows us to control the total number of tokens used while still providing relevant context.
+    After querying for the most recent messages in Azure Cosmos DB, we put them back in order in reverse. Recency matters in a conversation, the most recent text is what we want closer to the actual question. Counting the number of messages allows us to control the total number of tokens used while still providing relevant context.
 
 1. Next, within the **ChatService.cs** class, locate **GetChatCompletionAsync()** with the following signature. 
 
@@ -389,6 +391,7 @@ For this exercise we will implement the **GetSessionContextWindowAsync()** funct
     //Get the context window for this conversation up to the maximum conversation depth.
     List<Message> contextWindow = 
         await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
+
     (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(contextWindow);
     ```
 
@@ -408,7 +411,7 @@ You are now ready to test your context window implementation.
 
 1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
-1. In the web application, create a new chat session and ask the AI assistant this question, `What is the most expensive bike?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What about the least expensive?`. You should see some inexpensive bike options.
+1. In the web application, create a new chat session and ask the AI assistant this question, `What are the most expensive bikes?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What are the least expensive?`. You should see some inexpensive bike options.
  
 1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
 
@@ -428,6 +431,7 @@ Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file
         //Get the context window for this conversation up to the maximum conversation depth.
         List<Message> contextWindow = 
             await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
+
         (chatMessage.Completion, chatMessage.CompletionTokens) = await _semanticKernelService.GetChatCompletionAsync(sessionId, contextWindow);
 
         await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
@@ -442,7 +446,9 @@ Review the **GetChatCompletionAsync** method of the **ChatService.cs** code file
 
 In this exercise we will implement the RAG Pattern for our application. RAG is short for Retrieval Augmented Generation which is a fancy way of saying that the LLM will generate a completion using data retrieved elsewhere. The source of this data can be anything including files or data from a database. Typically the data is the result of a search for semantically relevant results to what the user is asking for. This often involves the use of a vector search against a database. The results of that search are passed with the context window and user prompt to then generate a response. 
 
-This workflow for RAG Pattern generally maps to the following steps:
+In this lab, we'll use the RAG pattern to search for relevant products in our Azure Cosmos DB database, instead of having the model return general answers from the LLM. Here, RAG pattern ensures that the chat application we're building for our bike store gives users answers about products actually sold in the store! These contextual answers are much more relevant to our application and demonstrate the power of RAG for building your own generative AI apps. 
+
+The workflow for RAG Pattern generally maps to the following steps:
 
 1. User types in a user prompt or question.
 1. The user prompt is vectorized by an embeddings model and returned as an array of vectors.
@@ -591,7 +597,7 @@ The next step is to implement the vector search query in our application.
     This code uses the Semantic Kernel Azure Cosmos DB NoSQL Vector Store connector to:
 
     1. Indicate which property in the Azure Cosmos DB document contains the vectors to search against using `VectorPropertyName` in the `VectorSearchOptions`.
-    1. Limit the number of products that are returned by the search using `Top`. Because LLM's can only process so much text at once, it is necessary to limit the amount of data returned by a vector search. The `productMaxResults` value limits that amount of data and because this is something you will need to adjust when doing vector searches, it is config value in this application.
+    1. Limit the number of products that are returned by the search using `Top`. Because LLM's can only process so much text at once, it is necessary to limit the amount of data returned by a vector search. The `productMaxResults` value limits that amount of data. Because this is something you will need to adjust when doing vector searches, it is config value in this application.
     1. Call the `VectorizedSearchAsync()` function in the Semantic Kernel connector. This performs vector search using the passed-in vector embeddings generated by the user prompt. The function automatically orders the results by the similarity score from most semantically relevant to least relevant.
 
 1. After this block of code, add the following lines before the existing return statement. This loops through the vector search results and serializes all products as a single string.
@@ -604,7 +610,6 @@ The next step is to implement the vector search query in our application.
     }
 
     string productsString = JsonSerializer.Serialize(resultRecords);
-    return productsString;
     ```
     
 1. Save the **SemanticKernelService.cs** file.
@@ -630,7 +635,7 @@ We need to modify the LLM payload for generating the completion to include our n
         Text of relevant information:";
     ```
 
-    Compare this system prompt to our original `_systemPrompt`. Both are similar in providing information for how the AI Agent should behave. However, the new system prompt provides greater context and a clear list of instructions for what it is supposed to do. It also provides a placeholder for where it expects to see additional information. 
+    Compare this system prompt to our original `_systemPrompt`. Both are similar in providing information for how the LLM should behave. However, the new system prompt provides greater context and a clear list of instructions for what it is supposed to do. It also provides a placeholder for where it expects to see additional information. 
 
 1. We next need to modify the function that will call the LLM. Locate the **GetRagCompletionAsync()** function in **SemanticKernelService.cs** with the following signature.
 
@@ -650,7 +655,7 @@ We need to modify the LLM payload for generating the completion to include our n
     - `_maxContextTokens` controls how much text from our context window is passed as part of the prompt. Notice the foreach loop lower down in this function that uses this variable to limit the number of prior messages added from our context window. 
     - `max_tokens` in the `PromptExecutionSettings` limits the number of tokens the model uses to generate a response. 
     
-    The model we are using can consume a max of 4096 tokens per request- our 3 settings help us ensure we are within the limits of our model for token consumption on each request.
+    The model we are using can consume a max of 4096 tokens per request. Our 3 settings help us ensure we are within the token consumption limits of our model on each request.
 
 1. Below `ragData`, locate the **skChatHistory** variable. Then add the second line below to set the new system message. This is where the vector search results are sent to the LLM and appended as part of the system prompt that we defined with the placeholder for additional information.
 
@@ -726,6 +731,38 @@ At this point, your application is ready to test our RAG Pattern implementation.
 
 </br>
 
+First, validate the **GetChatCompletionAsync()** function in the **ChatService** matches this sample.
+
+    ```csharp
+    public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string sessionId, string promptText)    
+    {        
+        //Create a message object for the new User Prompt and calculate the tokens for the prompt        
+        Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);        
+               
+        //Get the context window for this conversation up to the maximum conversation depth.        
+        List<Message> contextWindow = 
+            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);        
+        
+        //Serialize the user prompts for the context window        
+        string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));            
+        
+        //Generate embeddings for the user prompts for search        
+        float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);        
+        
+        //RAG Pattern Vector search results for product data        
+        string vectorSearchResults = await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);               
+        
+        //Call Semantic Kernel to do a vector search generate a new completion        
+        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = 
+            await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);        
+        
+        //Persist the prompt/completion, elapsed time, update the session tokens in chat history        
+        await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);        
+        
+        return chatMessage;    
+    }
+    ```
+
 If you get responses indicating there was no data to generate a response, the vector search is likely not working as expected. Navigate to the **SemanticKernelService** and locate the `SearchProductsAsync()` method to make sure that your code matches this sample.
  
     ```csharp
@@ -743,6 +780,7 @@ If you get responses indicating there was no data to generate a response, the ve
         }
 
         string productsString = JsonSerializer.Serialize(resultRecords);
+
         return productsString;
     }
     ```
@@ -870,7 +908,7 @@ Let's build our semantic cache using Azure Cosmos DB for NoSQL.
     string cacheResponse = await _cosmosDbService.GetCacheAsync(promptVectors, _cacheSimilarityScore);
     ```
 
-1. Next, below the call to find cached responses you just added, add the following code. If `cacheResponse` isn't empty, that means we found a matching response to give the user and we can skip the rest of the function by returning the `chatMessage` to the user. If there wasn't a cache hit, this if statement is skipped and the rest of our LLM pipeline is executed to search for relevant products and generate a new completion using the Semantic Kernel Service.
+1. Next, below the call to find cached responses you just added, add the following code. If `cacheResponse` isn't empty, that means we found a matching response to give the user. We can skip the rest of the function and return the cached completion to the user. If there wasn't a cache hit, this if statement is skipped and the rest of our LLM pipeline is executed to search for relevant products and generate a new completion using the Semantic Kernel Service.
 
     ```csharp
     //Cache hit, return the cached completion
@@ -886,7 +924,7 @@ Let's build our semantic cache using Azure Cosmos DB for NoSQL.
     }
     ```
     
-1. Lastly, we need to update this function to store new prompts and completions in the cache. After the existing call to the Semantic Kernel Service getting the new completion, add a call to update the cache.
+1. Lastly, we need to update this function to store new prompts and completions in the cache to use in the future. After the existing call to the Semantic Kernel Service getting the new completion, add a call to update the cache.
 
     ```csharp
     //Call Semantic Kernel to generate a new completion
@@ -973,11 +1011,11 @@ At this point, we've implemented our semantic cache and are ready to test.
 
 1. In the web application, create a new chat session and ask the AI assistant this question, `What are the most expensive bikes?`. The AI assistant now responds with a completion created by the model saying that `Cyclone Xtreme 900 Road Racer` is the most expensive bike, with some additional information. Next, ask the next follow up question as `What are the least expensive?`. You should see the response as `SummitRider Xtreme 29er`. Next ask one more question, `What's a good mid range?`. You should see a moderately priced bike with some additional information.
 
-1. Next we'll validate the Semantic cache is working. You will know the cache worked if you see a much faster response time with zero tokens consumed. Cached responses will also have a `Cache Hit: True` tag appended in the top right corner.
+    If the you got different bike responses- that's okay! Just ensure the flow of questions is the same, and that you're getting a response back with bikes from the product catalog.
+
+Next we'll validate the Semantic cache is working. You will know the cache worked if you see a much faster response time with zero tokens consumed. Cached responses will also have a `Cache Hit: True` tag appended in the top right corner. To test we will repeat the above sequence with slightly modified prompts. We will also take the opportunity to adjust the similarity score to see its impact on how the cache works. We will start with a very strict similarity score of 0.99, then adjust it after some testing.
 
     ![cache-hit.png](../media/cache-hit.png)
-
-1. To test we will repeat the above sequence with slightly modified prompts. We will also take the opportunity to adjust the similarity score to see its impact on how the cache works. We will start with a very strict similarity score of 0.99, then adjust it after some testing.
 
 1. Start a new chat and begin by modifying our original question and asking, `What are the highest cost bikes?`. You will notice that it responds correctly, but it didn't hit the cache and there were tokens consumed.
 
@@ -1008,11 +1046,11 @@ At this point, we've implemented our semantic cache and are ready to test.
 
 If you haven't noticed by now, the semantic cache in this lab caches within the **context window** for a session. This is different from how traditional caches work. Just as we saw earlier in the lab, **context matters!** Caching a conversation ensures that what gets returned from the cache is contextually correct. If it didn't do this, users would get unexpected, and likely unacceptable responses.
 
-Here is a simple mental exercise for a semantic cache that *does not* cache the context window. If you first ask an LLM, "What is the most expensive bike?", it will respond, then cache that user prompt and completion. If you then ask, "What about the least expensive?", the context window we built earlier will pass the chat history to the LLM and it will correctly respond with cheap bikes. And the cache will cache that individual user prompt and completion as well.
+Here is a simple mental exercise for a semantic cache that *does not* cache the context window. If you first ask an LLM, "What is the most expensive bike?", it will respond, then cache that user prompt and completion. If you then ask, "What is the least expensive?", the context window we built earlier will pass the chat history to the LLM and it will correctly respond with cheap bikes. The cache will store that individual user prompt and completion as well.
 
-Now, say another user in a different session asked, "What is the most bike seat?", the LLM will respond with expensive bike seat options. If that user then asked, "What about the least expensive?", the cache will return a list of bikes, which of course is not what the user was looking for when they asked about bike seats.
+Now, say another user in a different session asked, "What is the most expensive bike seat?", the LLM will respond with expensive bike seat options. If that user then asked, "What is the least expensive?", the cache will return a list of bikes from it's cached completion, which of course is not what the user was looking for when they asked about bike seats.
 
-This demonstrates why a semantic cache must cache within a context window. The context window already provides contextual relevance for an LLM to generate completions. This makes it a logical choice for how the cache should work. Implementing this is easy as we are already managing our chat history for our app. We just send all the user prompts as a string to be vectorized, then store this with the completion that gets generated by the LLM. Then when any user comes along later, only those with the *same sequence of questions* within their context window will get that specific cached response.
+This demonstrates why a semantic cache must cache within a context window. The context window already provides contextual relevance for an LLM to generate completions. This makes it a logical choice for how the cache should work. Implementing this is simple because we are already managing chat history for our app. We just send all the user prompts as a string to be vectorized, then store this with the completion that gets generated by the LLM. Then when any user comes along later, only those with the *same sequence of questions* within their context window will get that specific cached response.
 
 
 # Summary
