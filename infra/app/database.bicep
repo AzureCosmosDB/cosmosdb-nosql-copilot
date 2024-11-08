@@ -29,6 +29,9 @@ var containers = [
         {
           path: '/sessionId/?'
         }
+        {
+          path: '/timeStamp/?'
+        }
       ]
       excludedPaths: [
         {

@@ -7,12 +7,14 @@ param environmentName string
 
 @minLength(1)
 @allowed([
+  'swedencentral'
   'eastus2'
   'eastus'
   'japaneast'
   'uksouth'
   'northeurope'
   'westus3'
+  'northcentralus'
 ])
 @description('Primary location for all resources.')
 param location string
@@ -53,6 +55,8 @@ var openAiSettings = {
 }
 
 var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'
+
+var principalType = 'User'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: environmentName
@@ -103,6 +107,7 @@ module web 'app/web.bicep' = {
       completionDeploymentName: ai.outputs.deployments[0].name
       embeddingDeploymentName: ai.outputs.deployments[1].name
       maxRagTokens: openAiSettings.maxRagTokens
+      maxContextTokens: openAiSettings.maxContextTokens
     }
     chatSettings: {
       maxContextWindow: chatSettings.maxContextWindow
@@ -136,6 +141,7 @@ module security 'app/security.bicep' = {
     databaseAccountName: database.outputs.accountName
     appPrincipalId: identity.outputs.principalId
     userPrincipalId: !empty(principalId) ? principalId : null
+    principalType: principalType
   }
 }
 
