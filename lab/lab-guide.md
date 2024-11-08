@@ -242,7 +242,7 @@ At this point, your application is ready to test our Semantic Kernel implementat
 
 1. Let's test our new completions implementation. In a new chat session, type in the question, `What are the most expensive bikes?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information.
 
-1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
+1. Keep the application running, we'll use this same session in the next exercise.
 
 <details>
     <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
@@ -320,13 +320,11 @@ We have the basics for our Generative AI application now in place. Next let's te
 
 Humans interact with each other through conversations that have some *context* of what is being discussed. OpenAI's ChatGPT can also interact this way with humans. However, this capability is not native to an LLM itself. It must be implemented. Let's explore what happens when we test contextual follow up questions with our LLM where we ask follow up questions that imply an existing context like you would have in a conversation with another person.
 
-1. Back in our terminal, start the application using **dotnet run**.
+1. If you still have the application running from the previous exercise, move to the next step. If not, back in our terminal, start the application using **dotnet run**. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
     ```bash
     dotnet run
     ```
-
-1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
 1. In the web application, create a new chat session and ask the AI assistant the same question again, `What are the most expensive bikes?`. And wait for the response, "24K Gold Extreme Mountain Bike" priced at $1 million. 
 
