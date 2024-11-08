@@ -1,6 +1,6 @@
 # Serverless GenAI Apps with Semantic Kernel, Azure Cosmos DB & .NET Aspire
 
-In this hands-on lab, we will build serverless, AI RAG applications using .NET Aspire, Semantic Kernel and Azure Cosmos DB with DiskANN, vector search, and full-text search capabilities! You will learn how to implement Semantic Kernel Azure OpenAI Plug-ins, NoSQL connectors, and semantic caching! Gain practical insights into how to design, build, deploy and scale RAG pattern applications in Azure! The skills in this lab will give you a solid foundation to create your own generative AI applications. Its recommended to have C# or other programming language experience before completing this lab.
+In this hands-on lab, we will build serverless, AI RAG applications using .NET Aspire, Semantic Kernel and Azure Cosmos DB with DiskANN, vector search, and full-text search capabilities! You will learn how to implement Semantic Kernel Azure OpenAI extensions, NoSQL connectors, and semantic caching! Gain practical insights into how to design, build, deploy and scale RAG pattern applications in Azure! The skills in this lab will give you a solid foundation to create your own generative AI applications. Its recommended to have C# or other programming language experience before completing this lab.
 
 
 ## What are we doing?
@@ -21,7 +21,7 @@ Before we implement new functionality in this project, we need to set up authent
 1. Open a local **Terminal** and change the current working directory to where the application has already been downloaded for you.
 
     ```bash
-    cd C:\Users\Admin\Repos\cosmosdb-no-sql-copilot
+    cd C:\Users\Admin\Repos\cosmosdb-nosql-copilot\src
     ```
 
 1. Open the project in Visual Studio Code with the following command.
@@ -39,10 +39,10 @@ To access our Azure resources, we need to be authenticated from our terminal in 
 1. In the same terminal we just opened, change directories to **infra/scripts**.
 
     ```bash
-    cd infra/scripts
+    cd ../infra/scripts
     ```
 
-1. Log in to the Azure CLI using the credentials provided to you in the lab VM environment.
+1. Log in to the Azure CLI by entering the following command in the terminal window.
 
     ```bash
     az login
@@ -52,7 +52,7 @@ To access our Azure resources, we need to be authenticated from our terminal in 
 
     ![az-login-1.png](../media/az-login-1.png)
 
-1. Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment.
+1. Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment. Ensure you use the Azure credentials provided, this is different than the username and password used to sign in to the VM. Your username should look something like `azureuser-45536656@LODSPRODMCA.onmicrosoft.com`. 
 
     ![az-login-2.png](../media/az-login-2.png)
 
@@ -74,15 +74,11 @@ To access our Azure resources, we need to be authenticated from our terminal in 
 
 Now it's time to make sure the application works as expected. In this step, build the application to verify that there's no issues before we get started.
 
-1. In the same terminal, change directories then run **dotnet workload restore** to install the `aspire` workload.
+1. In the same terminal, change directories to `src/cosmos-copilot.AppHost`. The **AppHost** is the entry point for all .NET Aspire projects and it acts as an orchestrator for all of the dependent projects and services in your application. 
 
     ```bash
     cd ../../src/cosmos-copilot.AppHost
-    dotnet workload restore
     ```
-1. You will get a pop-up asking if you want to allow this app to make changes to your device. Enter **Yes**.
-
-    ![dotnet-workload-restore.png](../media/dotnet-workload-restore.png)
 
 1. Before we run the application locally, we need to trust the https developer certificate that .NET will generate for us.
 
@@ -101,11 +97,11 @@ Now it's time to make sure the application works as expected. In this step, buil
     dotnet run
     ```
 
-1. To test our application, launch the .NET Aspire Dashboard by clicking the link provided in the console output. Your output should look something like the image below. `CTRL + click` on the link to localhost with the login information appended to the end of it. This will automatically open the dashboard in a web browser.
+1. Your output should look something like the image below. To test our application, launch the .NET Aspire Dashboard with `CTRL + click` on the dashboard link. This is the second localhost link and has the login information appended to the end of it. This link will automatically open the .NET Aspire Dashboard in a web browser.
 
     ![launch-aspire-dashboard.png](../media/launch-aspire-dashboard.png)
 
-1. In the web application, launch the `webfrontend` by clicking on the `http://localhost:8100` endpoint.
+1. The .NET Aspire dashboard has pages to manage all project resources, view console output, structured logs, traces for each request, and metrics emitted by various libraries. In the dashboard, launch our chat application by clicking on the `http://localhost:8100` endpoint.
 
     ![aspire-dashboard.png](../media/aspire-dashboard.png)
 
@@ -113,7 +109,9 @@ Now it's time to make sure the application works as expected. In this step, buil
 
     ![create-new-chat.png](../media/create-new-chat.png)
 
-1. Close the web browser and end the process in the terminal by entering `CTRL + c`. Don't close the terminal entirely. We'll use the same terminal process throughout this entire lab.
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`. Don't close the terminal entirely. We'll use the same terminal process throughout this entire lab. 
+
+Every time we run the application locally, we will do it from the **src/cosmos-copilot.AppHost** directory you are already in. All updates to the application will be to files in the **src/cosmos-copilot.WebApp** directory and it's folders.
 
 
 # Exercise: Implement the Semantic Kernel
@@ -122,7 +120,7 @@ Let's implement the Semantic Kernel Service so we can generate real responses fr
 
 In this lab, we'll use two Semantic Kernel OpenAI Service Extensions and the Semantic Kernel Azure Cosmos DB NoSQL Vector Store connector. For now, let's add the OpenAI Chat Completion extension to generate responses from the LLM.
 
-1. Within the project, find the file **Services/SemanticKernelService.cs**. Locate the **SemanticKernelService()** constructor with the following signature. 
+1. Within the project, find the file **cosmos-copilot.WebApp/Services/SemanticKernelService.cs**. Locate the **SemanticKernelService()** constructor with the following signature. 
 
     ```csharp
     public SemanticKernelService(OpenAIClient openAiClient, CosmosClient cosmosClient, IOptions<OpenAi> openAIOptions, IOptions<CosmosDb> cosmosOptions)
@@ -232,17 +230,17 @@ We now need to take our completed Semantic Kernel service and use it in the **Ch
 
 At this point, your application is ready to test our Semantic Kernel implementation to get completions generated by Azure OpenAI Service. Let's run our application and test it.
 
-1. Return to the terminal and run it using **dotnet run**.
+1. Back in our terminal, start the application using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code launches the in-tool simple browser again with the web application running. 
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
-1. Let's test our new completions implementation. Type in a new question, `What is the most expensive bike?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information.
+1. Let's test our new completions implementation. In a new chat session, type in the question, `What is the most expensive bike?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information.
 
-1. Close the terminal.
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
 
 <details>
     <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
@@ -320,17 +318,19 @@ We have the basics for our Generative AI application now in place. Next let's te
 
 Humans interact with each other through conversations that have some *context* of what is being discussed. OpenAI's ChatGPT can also interact this way with humans. However, this capability is not native to an LLM itself. It must be implemented. Let's explore what happens when we test contextual follow up questions with our LLM where we ask follow up questions that imply an existing context like you would have in a conversation with another person.
 
-1. Open a new terminal and start the application using **dotnet run**.
+1. Back in our terminal, start the application using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
+
 1. In the web application, create a new chat session and ask the AI assistant the same question again, `What is the most expensive bike?`. And wait for the response, "24K Gold Extreme Mountain Bike" priced at $1 million. 
 
-1. Ask this follow up question. `What about the least expensive?`. The response generated should look like the one below and will either have nothing to do with your first question, or the LLM may respond it needs more context to give you an answer.
+1. Ask this follow up question. `What about the least expensive?`. The response generated will either have nothing to do with your first question, or the LLM may respond it needs more context to give you an answer.
 
-     ![no-conversation-history.png](images/no-conversation-history.png) // TODO: update this image!
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
 
 This demonstrates that LLM's are stateless. They do not maintain any conversation history by themselves and are missing the context necessary for the LLM to respond appropriately to your second question.
 
@@ -392,19 +392,17 @@ For this exercise we will implement the **GetChatSessionContextWindow()** functi
 
 You are now ready to test your context window implementation.
 
-1. Open a new terminal and start the application using **dotnet run**.
+1. Back in our terminal, start the application using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code will launch the in-tool simple browser again with the web application running. 
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
 1. In the web application, create a new chat session and ask the AI assistant this question, `What is the most expensive bike?`. The AI assistant now responds with a completion created by the model saying that "24K Gold Extreme Mountain Bike" is the most expensive, with some additional information. Now the second question again, `What about the least expensive?`. You should see some inexpensive bike options.
  
- ![with-conversation-history.png](images/with-conversation-history.png) // TODO: update this image!
-
-1. Close the terminal. (click the garbage can icon)
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
 
 <details>
     <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
@@ -689,27 +687,23 @@ The last step for our RAG Pattern implementation is to modify our LLM pipeline f
 
 1. Save the **ChatService.cs** file.
 
-## Check your work // TODO: update me
+## Check your work
 
 At this point, your application is ready to test our RAG Pattern implementation. Let's run our application and test it.
 
-1. Return to the terminal and run it using **dotnet run**.
+1. Back in our terminal, start the application using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code launches the in-tool simple browser again with the web application running. 
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
 1. First we will test our RAG Pattern app with its new vector search, system prompt and response generation. In the web application, create a new chat session and ask, `What bikes do you have?`. The AI assistant should respond with a list of bikes available from the product catalog. 
 
-1. Next, let's ask a follow up question. `Do you have any bikes in red?`. The AI assistant should then respond with a list of bikes available in red only.
+1. Next, let's ask a follow up question. `Do you have mountain bikes?`. The AI assistant should then respond with a list of mountain bikes.
 
-    Let's also test the semantic cache with our new RAG Pattern. Semantic cache is a valuable feature to have in a RAG Pattern application because the amount of tokens required to generate responses from the increased amount of text and data can be much greater. It also takes longer to generate the responses. Serving responses from the cache will save on both.
-
-1. In the web application, create a new chat session and ask, `What bikes do you have?`. The AI assistant should respond with the same list of bikes available from the product catalog with *(cached response)* appended to the response and zero tokens consumed. The response should also be noticeably quicker than before when it has to execute a vector search and generate the response from the LLM.
-
-1. Close the terminal.
+1. Close the web browser and end the process in the terminal by entering `CTRL + C`.
 
 <details>
     <summary>Is your application not working or throwing exceptions? Click here to compare your code against this example.</summary>
@@ -788,7 +782,6 @@ Finally, if the responses do not include any information on the bike products be
                 { "max_tokens", 1000  }
             }
         };
-
         var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
 
         ChatTokenUsage completionUsage = (ChatTokenUsage)result.Metadata!["Usage"]!;
@@ -884,14 +877,14 @@ Let's build our semantic cache using Azure Cosmos DB for NoSQL.
     (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
 
     //Cache the prompts in the current context window and their vectors with the generated completion
-    await CachePutAsync(prompts, promptVectors, chatMessage.Completion);
+    await _cosmosDbService.CachePutAsync(new CacheItem(promptVectors, prompts, chatMessage.Completion));
     ```
 
 1. Save the file.
 
-## Check your work // TODO: update me
+## Check your work
 
-1. This exercise had a lot of code. Before we test our new semantic cache, verify your code is correct. Click the "Compare your code against this sample" below to check if your code is correct.
+1. This exercise had a lot of code. Before we test our new semantic cache, verify your code is correct. Click the "Compare your code against this example." below to check if your code is correct.
 
 <details>
     <summary>Compare your code against this example.</summary>
@@ -937,7 +930,7 @@ Review the **GetChatCompletionAsync()** method of the **ChatService.cs** code fi
         (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
 
         //Cache the prompts in the current context window and their vectors with the generated completion
-        await CachePutAsync(prompts, promptVectors, chatMessage.Completion);
+        await _cosmosDbService.CachePutAsync(new CacheItem(promptVectors, prompts, chatMessage.Completion));
 
         //Persist the prompt/completion, elapsed time, update the session tokens
         await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
@@ -947,60 +940,67 @@ Review the **GetChatCompletionAsync()** method of the **ChatService.cs** code fi
     ```
 </details>
 
+## Tune the cache
+
 At this point, we've implemented our semantic cache and are ready to test.
 
-1. Open a new terminal and start the application using **dotnet run**.
+1. Back in our terminal, start the application using **dotnet run**.
 
     ```bash
     dotnet run
     ```
 
-1. Visual Studio Code launches the in-tool simple browser again with the web application running. 
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
-1. In the web application, create a new chat session and ask the AI assistant this question, `What is the largest lake in North America?`. The AI assistant now responds with a completion created by the model saying that `Lake Superior` is the largest lake, with some additional information. Next, ask the next follow up question as `What is the second largest?`. You should see the response as the 'Lake Huron'. Next ask one more question, `What is the third largest?`. You should see the response as `Great Bear` Lake with some additional information.
+1. In the web application, create a new chat session and ask the AI assistant this question, `What are the most expensive bikes?`. The AI assistant now responds with a completion created by the model saying that `Cyclone Xtreme 900 Road Racer` is the most expensive bike, with some additional information. Next, ask the next follow up question as `What about the least expensive ones?`. You should see the response as `SummitRider Xtreme 29er`. Next ask one more question, `What's a good mid range?`. You should see a moderately priced bike with some additional information.
 
-1. Next validate the Semantic cache is working. You should see a much faster response time with zero tokens consumed. Also cached responses will include, *(cached response)* appended in the response like this below.
+1. Next we'll validate the Semantic cache is working. You will know the cache worked if you see a much faster response time with zero tokens consumed. Cached responses will also have a `Cache Hit: True` tag appended in the top right corner.
 
-![semantic-cache.png](images/semantic-cache.png)
+    ![cache-hit.png](../media/cache-hit.png)
 
 1. To test we will repeat the above sequence with slightly modified prompts. We will also take the opportunity to adjust the similarity score to see its impact on how the cache works. We will start with a very strict similarity score of 0.99, then adjust it after some testing.
 
-1. Start a new session and begin by modifying our original question and asking, `What is the biggest lake in North America?`. You will notice that it responds correctly, but it didn't hit the cache as there were tokens consumed.
+1. Start a new chat and begin by modifying our original question and asking, `What are the highest cost bikes?`. You will notice that it responds correctly, but it didn't hit the cache and there were tokens consumed.
 
-1. Close the terminal to stop the application. (click the garbage can icon)
+1. Close the browser and stop the application by entering `CTRL + C` in the terminal.
 
-1. Open the the **appsettings.json** file in the project. Edit the **CacheSimilarityScore** value and adjust it from `0.99` to `0.95`. Save the file.
+1. In the **ChatService.cs** file, find the **ChatService()** constructor. Comment out the line parsing the similarity score from our settings and manually adjust the value from `0.99` to `0.8`. Save the file.
 
-1. Open a new terminal and start the application using **dotnet run**.
+    ```csharp
+    //_cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
+    _cacheSimilarityScore = .8;
+    ```
+
+1. Back in our terminal, start the application using **dotnet run**. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
     ```bash
     dotnet run
     ```
 
-1. Start a new session and ask the same modified question again, `What is the biggest lake in North America?`. This time you will get a cache hit with zero tokens and the *(cached response)* appended to the response.
+1. Start a new session and ask the same modified question again, `What are the highest cost bikes?`. This time you will get a cache hit with zero tokens and the `Cache Hit: True` tag appended to the response.
 
-1. Next ask the follow up question, `What is the second largest?`. Here too you will get a cached response.
+1. Next ask the follow up question, `What about the least expensive?`. Here too you will get a cached response.
 
 1. Spend a few minutes trying different sequences of questions (and follow up questions) and then modifying them with different similarity scores. If you want to start over and do multiple tests using the same series of questions you can click on **Clear Cache** in the app to empty the cache.
 
-1. When you are done, close the terminal to stop the application. (click the garbage can icon)
+1. When you are done, close the browser and stop the application by entering `CTRL + C` in the terminal.
 
-## A semantic cache needs to have context // TODO: update me
+## A semantic cache needs to have context
 
 If you haven't noticed by now, the semantic cache in this lab caches within the **context window** for a session. This is different from how traditional caches work. Just as we saw earlier in the lab, **context matters!** Caching a conversation ensures that what gets returned from the cache is contextually correct. If it didn't do this, users would get unexpected, and likely unacceptable responses.
 
-Here is a simple mental exercise for a semantic cache that *does not* cache the context window. If you first ask an LLM, "What is the largest lake in North America?", it will respond "Lake Superior", then cache that user prompt and completion. If you then ask, "What is the second largest?", the context window we built earlier will pass the chat history to the LLM and it will correctly respond with, "Lake Huron". And the cache will cache that individual user prompt, "What is the second largest?" and the "Lake Huron" completion as well.
+Here is a simple mental exercise for a semantic cache that *does not* cache the context window. If you first ask an LLM, "What is the most expensive bike?", it will respond, then cache that user prompt and completion. If you then ask, "What about the least expensive?", the context window we built earlier will pass the chat history to the LLM and it will correctly respond with cheap bikes. And the cache will cache that individual user prompt and completion as well.
 
-Now, say another user in a different session asked, "What is the largest stadium in North America?", the LLM will respond with, "Michigan Stadium with 107,601 seat capacity". If that user then asked, "What is the second largest?", the cache will return, "Lake Huron", which of course is incorrect.
+Now, say another user in a different session asked, "What is the most expensive motorcycle?", the LLM will respond with expensive motorcycle options. If that user then asked, "What about the least expensive?", the cache will return a list of regular, inexpensive bikes, which of course is not what the user was looking for when they asked about motorcycles.
 
-It is for this reason a semantic cache must cache within a context window. The context window already provides contextual relevance for an LLM to generate completions. This makes it a logical choice for how the cache should work as well. Implementing this is easy as we are already managing our chat history for our app. We just send all the user prompts as a string to be vectorized, then store this with the completion that gets generated by the LLM. Then when any user comes along later, only those with the *same sequence of questions* within their context window will get that specific cached response.
+This demonstrates why a semantic cache must cache within a context window. The context window already provides contextual relevance for an LLM to generate completions. This makes it a logical choice for how the cache should work. Implementing this is easy as we are already managing our chat history for our app. We just send all the user prompts as a string to be vectorized, then store this with the completion that gets generated by the LLM. Then when any user comes along later, only those with the *same sequence of questions* within their context window will get that specific cached response.
 
 
 # Summary
 
 You have successfully implemented our new Generative AI application using Azure Cosmos DB and Azure OpenAI Service. You have learned new concepts for building Generative AI applications such as tokens, context windows, semantic caching, similarity scores and RAG Pattern.
 
-With the SDKs for Azure Cosmos DB for NoSQL and Semantic Kernel including it's plug-ins and connectors, you were able to add these services to your application with little friction. The services you implemented illustrate the best practices for using each SDK across various operations. The .NET SDKs for each service made it possible to add the required functionality to your ASP.NET Core Blazor web application using .NET Aspire with lightweight method implementations.
+With the SDKs for Azure Cosmos DB for NoSQL and Semantic Kernel including it's extensions and connectors, you were able to add these services to your application with little friction. The services you implemented illustrate the best practices for using each SDK across various operations. The .NET SDKs for each service made it possible to add the required functionality to your ASP.NET Core Blazor web application using .NET Aspire with lightweight method implementations.
 
 
 ## References
