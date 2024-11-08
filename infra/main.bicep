@@ -42,7 +42,7 @@ var tags = {
 var chatSettings = {
   maxContextWindow: '3'
   cacheSimilarityScore: '0.99'
-  productMaxResults: '10'
+  productMaxResults: '5'
 }
 
 var openAiSettings = {
@@ -50,8 +50,8 @@ var openAiSettings = {
   completionDeploymentName: 'gpt-4o'
   embeddingModelName: 'text-embedding-3-large'
   embeddingDeploymentName: 'text-embedding-3-large'
-  maxRagTokens: '3000'
-  maxContextTokens: '1000'
+  maxRagTokens: '2500'
+  maxContextTokens: '500'
 }
 
 var productDataSource = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'

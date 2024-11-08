@@ -122,8 +122,8 @@ public class SemanticKernelService
 
         //Create a tokenizer for the model
         _tokenizer = Tokenizer.CreateTiktokenForModel(modelName: "gpt-4o");
-        _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens: 3000;
-        _maxContextTokens = Int32.TryParse(maxContextTokens, out _maxContextTokens) ? _maxContextTokens : 1000;
+        _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens: 2500;
+        _maxContextTokens = Int32.TryParse(maxContextTokens, out _maxContextTokens) ? _maxContextTokens : 500;
 
     }
 
@@ -164,7 +164,7 @@ public class SemanticKernelService
             {
                 { "temperature", 0.2 },
                 { "top_p", 0.7 },
-                { "max_tokens", 1000  }  //TODO: This doesn't appear to do anything
+                { "max_tokens", 1000  }
             }
         };
 
@@ -214,7 +214,7 @@ public class SemanticKernelService
     /// <returns>The reduced text</returns>
     private string TrimToTokenLimit(int maxTokens, string text)
     {
-
+        
         // Get the index of the string up to the maxTokens
         int trimIndex = _tokenizer.IndexOfTokenCount(text, maxTokens, out string? processedText, out _);
 
@@ -235,6 +235,43 @@ public class SemanticKernelService
         float[] embeddingsArray = embeddings.ToArray();
 
         return embeddingsArray;
+    }
+
+    /// <summary>
+    /// Generates a completion using a user prompt with chat history to Semantic Kernel and returns the response.
+    /// </summary>
+    /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
+    /// <returns>Generated response along with tokens used to generate it.</returns>
+    public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
+    {
+        var skChatHistory = new ChatHistory();
+        skChatHistory.AddSystemMessage(_systemPrompt);
+
+        foreach (var message in contextWindow)
+        {
+            skChatHistory.AddUserMessage(message.Prompt);
+            if (message.Completion != string.Empty)
+                skChatHistory.AddAssistantMessage(message.Completion);
+        }
+
+        PromptExecutionSettings settings = new()
+        {
+            ExtensionData = new Dictionary<string, object>()
+            {
+                { "temperature", 0.2 },
+                { "top_p", 0.7 },
+                { "max_tokens", 1000  }
+            }
+        };
+
+        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
+
+        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
+
+        string completion = result.Items[0].ToString()!;
+        int tokens = completionUsage.CompletionTokens;
+
+        return (completion, tokens);
     }
 
     /// <summary>
@@ -312,7 +349,7 @@ public class SemanticKernelService
     {
         
         return await _productContainer.UpsertAsync(product);
-        
+
     }
 
     /// <summary>
@@ -324,44 +361,6 @@ public class SemanticKernelService
         
         var compositeKey = new AzureCosmosDBNoSQLCompositeKey(recordKey: product.id, partitionKey: product.categoryId);
         await _productContainer.DeleteAsync(compositeKey);
-        
-    }
-
-    /// <summary>
-    /// Generates a completion using a user prompt with chat history to Semantic Kernel and returns the response.
-    /// </summary>
-    /// <param name="contextWindow">List of Message objects containign the context window (chat history) to send to the model.</param>
-    /// <returns>Generated response along with tokens used to generate it.</returns>
-    public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
-    {
-        var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_systemPrompt);
-
-        foreach (var message in contextWindow)
-        {
-            skChatHistory.AddUserMessage(message.Prompt);
-            if (message.Completion != string.Empty)
-                skChatHistory.AddAssistantMessage(message.Completion);
-        }
-
-        PromptExecutionSettings settings = new()
-        {
-            ExtensionData = new Dictionary<string, object>()
-            {
-                { "temperature", 0.2 },
-                { "top_p", 0.7 },
-                { "max_tokens", 1000  }
-            }
-        };
-
-        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
-
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
-
-        string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
-
-        return (completion, tokens);
     }
 
 }
