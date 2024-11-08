@@ -168,18 +168,7 @@ public class CosmosDbService
 
         //Select the last N messages in the context window
         //Using Top and Order By on the timestamp
-        string queryText = $"""
-            SELECT Top @maxContextWindow
-                *
-            FROM c  
-            WHERE 
-                c.tenantId = @tenantId AND 
-                c.userId = @userId AND
-                c.sessionId = @sessionId AND 
-                c.type = @type
-            ORDER BY 
-                c.timeStamp DESC
-            """;
+        string queryText = $"";
 
         QueryDefinition query = new QueryDefinition(query: queryText)
             .WithParameter("@tenantId", tenantId)
@@ -316,15 +305,7 @@ public class CosmosDbService
 
         string cacheResponse = "";
 
-        string queryText = $"""
-            SELECT Top 1 
-                c.prompt, c.completion, VectorDistance(c.vectors, @vectors) as similarityScore
-            FROM c  
-            WHERE 
-                VectorDistance(c.vectors, @vectors) > @similarityScore 
-            ORDER BY 
-                VectorDistance(c.vectors, @vectors)
-            """;
+        string queryText = $"";
 
         var queryDef = new QueryDefinition(
                 query: queryText)

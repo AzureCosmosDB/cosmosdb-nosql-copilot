@@ -39,45 +39,11 @@ public class ChatService
     /// </summary>
     public async Task<Message> GetChatCompletionAsync(string tenantId, string userId, string sessionId, string promptText)
     {
-
         //Create a message object for the new User Prompt and calculate the tokens for the prompt
         Message chatMessage = await CreateChatMessageAsync(tenantId, userId, sessionId, promptText);
 
-        //Get the context window for this conversation up to the maximum conversation depth.
-        List<Message> contextWindow = 
-            await _cosmosDbService.GetSessionContextWindowAsync(tenantId, userId, sessionId, _maxContextWindow);
-
-        //Serialize the user prompts for the context window
-        string prompts = string.Join(Environment.NewLine, contextWindow.Select(m => m.Prompt));
-
-        //Generate embeddings for the user prompts for search
-        float[] promptVectors = await _semanticKernelService.GetEmbeddingsAsync(prompts);
-
-        //Perform a cache search for the same sequence and depth of prompts in this conversation
-        string cacheResponse = await _cosmosDbService.GetCacheAsync(promptVectors, _cacheSimilarityScore);
-
-        //Cache hit, return the cached completion
-        if (!string.IsNullOrEmpty(cacheResponse))
-        {
-            chatMessage.CacheHit = true;
-            chatMessage.Completion = cacheResponse;
-
-            //Persist the prompt/completion, elapsed time, update the session tokens
-            await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
-
-            return chatMessage;
-        }
-
-        //RAG Pattern Vector search results for product data
-        string vectorSearchResults = 
-            await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);
-
-        //Call Semantic Kernel to generate a new completion
-        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = 
-            await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
-
-        //Cache the prompts in the current context window and their vectors with the generated completion
-        await _cosmosDbService.CachePutAsync(new CacheItem(promptVectors, prompts, chatMessage.Completion));
+        chatMessage.Completion = "Place holder response";
+        chatMessage.CompletionTokens = 0;
 
         //Persist the prompt/completion, elapsed time, update the session tokens in chat history
         await UpdateSessionAndMessage(tenantId, userId, sessionId, chatMessage);
@@ -90,7 +56,6 @@ public class ChatService
     /// </summary>
     public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string sessionId)
     {
-
         //Get the messages for the session
         List<Message> messages = await _cosmosDbService.GetSessionMessagesAsync( tenantId,  userId, sessionId);
 

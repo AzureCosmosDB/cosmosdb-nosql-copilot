@@ -41,17 +41,7 @@ public class SemanticKernelService
     /// <summary>
     /// System prompt to send with user prompts as a Retail AI Assistant for chat session
     /// </summary>
-    private readonly string _systemPromptRetailAssistant = @"
-       You are an intelligent assistant for the Cosmic Works Bike Company. 
-       You are designed to provide helpful answers to user questions about 
-       bike products and accessories provided in JSON format below.
-
-       Instructions:
-       - Only answer questions related to the information provided below,
-       - Don't reference any product data not provided below.
-       - If you're unsure of an answer, you can say ""I don't know"" or ""I'm not sure"" and recommend users search themselves.
-
-       Text of relevant information:";
+    private readonly string _systemPromptRetailAssistant = @"";
 
     /// <summary>    
     /// System prompt to send with user prompts to instruct the model for summarization
@@ -96,12 +86,6 @@ public class SemanticKernelService
 
         // Initialize the Semantic Kernel
         var builder = Kernel.CreateBuilder();
-        
-        //Add Azure OpenAI chat completion service
-        builder.AddOpenAIChatCompletion(modelId: completionDeploymentName, openAIClient: openAiClient);
-
-        //Add Azure OpenAI text embedding generation service
-        builder.AddOpenAITextEmbeddingGeneration(modelId: embeddingDeploymentName, openAIClient: openAiClient, dimensions: 1536);
 
         //Add Azure CosmosDB NoSql client and Database to the Semantic Kernel
         builder.Services.AddSingleton<Database>(
@@ -135,13 +119,8 @@ public class SemanticKernelService
     /// <returns>Generated response along with tokens used to generate it and tokens for the completion text.</returns>
     public async Task<(string completion, int generationTokens, int completionTokens)> GetRagCompletionAsync(List<Message> contextWindow, string ragData)
     {
-        
-        //Manage token consumption per request by trimming the amount of vector search data sent to the model
-        ragData = TrimToTokenLimit(_maxRagTokens, ragData);
-
         //Add the system prompt and vector search data to the chat history
         var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + ragData);
 
         //Manage token consumption by trimming the amount of chat history sent to the model
         //Useful if the chat history is very large. It can also be summarized before sending to the model
@@ -190,19 +169,9 @@ public class SemanticKernelService
     /// <returns>JSON string of returned products</returns>
     public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
     {
-        var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
+        string productsString = "";
+        await Task.Delay(0);
 
-        //Call Semantic Kernel to perform the vector search
-        var searchResult = await _productContainer.VectorizedSearchAsync(promptVectors, options);
-
-        var resultRecords = new List<VectorSearchResult<Product>>();
-        await foreach (var result in searchResult.Results)
-        {
-            resultRecords.Add(result);
-        }
-
-        //Serialize List<VectorSearchResult<Product>> to a JSON string to send to OpenAI
-        string productsString = JsonSerializer.Serialize(resultRecords);
         return productsString;
     }
 
@@ -228,9 +197,8 @@ public class SemanticKernelService
     /// <returns>Array of vectors from the OpenAI embedding model deployment.</returns>
     public async Task<float[]> GetEmbeddingsAsync(string text)
     {
-        var embeddings = await kernel.GetRequiredService<ITextEmbeddingGenerationService>().GenerateEmbeddingAsync(text);
-
-        float[] embeddingsArray = embeddings.ToArray();
+        await Task.Delay(0);
+        float[] embeddingsArray = new float[0];
 
         return embeddingsArray;
     }
@@ -243,31 +211,10 @@ public class SemanticKernelService
     public async Task<(string completion, int tokens)> GetChatCompletionAsync(List<Message> contextWindow)
     {
         var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_systemPrompt);
 
-        foreach (var message in contextWindow)
-        {
-            skChatHistory.AddUserMessage(message.Prompt);
-            if (message.Completion != string.Empty)
-                skChatHistory.AddAssistantMessage(message.Completion);
-        }
-
-        PromptExecutionSettings settings = new()
-        {
-            ExtensionData = new Dictionary<string, object>()
-            {
-                { "temperature", 0.2 },
-                { "top_p", 0.7 },
-                { "max_tokens", 1000  }
-            }
-        };
-
-        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
-
-        CompletionsUsage completionUsage = (CompletionsUsage)result.Metadata!["Usage"]!;
-
-        string completion = result.Items[0].ToString()!;
-        int tokens = completionUsage.CompletionTokens;
+        string completion = "Place holder response";
+        int tokens = 0;
+        await Task.Delay(0);
 
         return (completion, tokens);
     }
@@ -279,23 +226,8 @@ public class SemanticKernelService
     /// <returns>Summarized text from the OpenAI completion model deployment.</returns>
     public async Task<string> SummarizeConversationAsync(string conversation)
     {
-        var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_summarizePrompt);
-        skChatHistory.AddUserMessage(conversation);
-
-        PromptExecutionSettings settings = new()
-        {
-            ExtensionData = new Dictionary<string, object>()
-            {
-                { "temperature", 0.0 },
-                { "top_p", 1.0 },
-                { "max_tokens", 100 }
-            }
-        };
-
-        var result = await kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(skChatHistory, settings);
-
-        string completion = result.Items[0].ToString()!;
+        await Task.Delay(0);
+        string completion = "Placeholder summary";
 
         return completion;
     }
