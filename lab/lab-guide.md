@@ -97,7 +97,7 @@ Now it's time to make sure the application works as expected. In this step, buil
 
     ![trust-dev-certs.png](../media/trust-dev-certs.png)
 
-1. At this point, your app has enough information to run but not enough to generate a real response from an LLM. Let's run the application to make sure your code doesn't have any omissions or errors.
+1. At this point, your app has enough information to run but not enough to generate a real response from an LLM. Let's run the application to make sure your code doesn't have any omissions or errors. You may see some warnings, these are safe to ignore.
 
     ```bash
     dotnet run
@@ -146,6 +146,8 @@ In this lab, we'll use two Semantic Kernel OpenAI Service Extensions and the Sem
     ```
 
     The builder with this new line will initialize and inject a built-in service from OpenAI. **Chat Completion** refers to response generation from a GPT model.
+
+>[!note] This lab requires copying code from the instructions into Visual Studio Code. For proper formatting while copying code blocks greater than one line, you will need to manually tab the 2nd+ lines of code. You can tab multiple lines at once using this keyboard shortcut: *Shift + Alt + dragging mouse to select multiple lines*.
 
 We will now implement the function that uses this Semantic Kernel extension to generate a chat completion for a given user prompt. The function will return the text generated as well as the number of tokens to generate a response.
 
@@ -728,6 +730,8 @@ At this point, your application is ready to test our RAG Pattern implementation.
 1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
 1. First we will test our RAG Pattern app with its new vector search, system prompt and response generation. In the web application, create a new chat session and ask, `What bikes do you have?`. The AI assistant should respond with a list of bikes available from the product catalog. 
+
+    Notice the number of *Generation Tokens* and the *Time* are now significantly higher because we're passing in more data for the model to analyze. We'll look at optimizing this in the next exercise.
 
 1. Next, let's ask a follow up question. `Do you have mountain bikes?`. The AI assistant should then respond with a list of mountain bikes.
 

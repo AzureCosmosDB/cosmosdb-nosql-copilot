@@ -216,6 +216,7 @@ public class SemanticKernelService
         int tokens = 0;
         await Task.Delay(0);
 
+        //Don’t replace this line.
         return (completion, tokens);
     }
 
@@ -229,6 +230,7 @@ public class SemanticKernelService
         await Task.Delay(0);
         string completion = "Placeholder summary";
 
+        //Don’t replace this line.
         return completion;
     }
 
