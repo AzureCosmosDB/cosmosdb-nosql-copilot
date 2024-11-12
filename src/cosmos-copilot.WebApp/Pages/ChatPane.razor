@@ -129,6 +129,8 @@
                                     @prompt
                                 </div>
                             </div>
+                            @if (msg.Completion != "")
+                            {
                             <div class="toast fade show w-75 rounded-3 align-self-end">
                                 <div class="toast-header bg-success text-dark">
                                     <i class="bi bi-robot me-1" aria-hidden="true"></i>
@@ -147,6 +149,21 @@
                                     @completion
                                 </div>
                             </div>
+                            }
+                        }
+                        @if(_processingComplete ==false)
+                        {
+                        <div class="alert alert-primary">
+                            <div class="alert-heading">
+                                <div class="spinner-border text-primary me-1" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                Processing your request...
+                            </div>
+                            <p class="text-nowrap mb-0 fst-italic">
+                                Please wait while your request is processed by the LLM.
+                            </p>
+                        </div>
                         }
                     </div>
                 }
@@ -195,13 +212,14 @@
     private string? Tenant;
     private string? User;
 
-    private List<string> DummyUsers = new List<string> { "Mark", "Justine", "Sandeep", "James", "Sajee" };
+    private List<string> DummyUsers = new List<string> { "User_1", "User_2"};
 
     private List<Message>? _messagesInChat;
     private static event EventHandler<Session>? _onMessagePosted;
 
 
     private bool _loadingComplete;
+    private bool _processingComplete=true;
 
     private MarkupString FixupText(string input)
     {
@@ -310,6 +328,8 @@
 
     private async Task SubmitPromptAsync()
     {
+       
+
         if (CurrentSession?.SessionId == Interface.EMPTY_SESSION || UserPrompt == String.Empty || UserPrompt is null)
         {
             return;
@@ -317,8 +337,10 @@
 
         if (UserPrompt != String.Empty)
         {           
-           UserPromptSet = String.Empty;
+            UserPromptSet = String.Empty;
         }
+        _processingComplete = false;
+        await OnChatUpdated.InvokeAsync(CurrentSession);
 
         var message = await chatService.GetChatCompletionAsync(Tenant!, User!, CurrentSession!.SessionId, UserPrompt);
         CurrentSession!.Tokens += message.CompletionTokens + message.GenerationTokens;
@@ -333,6 +355,9 @@
                 CurrentSession.Name = newSessionName;
             }
         }
+
+        _processingComplete = true;
+
         await OnChatUpdated.InvokeAsync(CurrentSession);
 
         if (_onMessagePosted is not null && CurrentSession is not null)
