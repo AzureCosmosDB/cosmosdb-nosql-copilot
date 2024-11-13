@@ -30,7 +30,7 @@ type cosmosDbOptions = {
   chatContainer: string
   cacheContainer: string
   productContainer: string
-  productDataSource: string
+  productDataSourceUri: string
 }
 @description('Application configuration settings for Azure Cosmos DB.')
 param cosmosDbSettings cosmosDbOptions
@@ -97,7 +97,7 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
       COSMOSDB__CHATCONTAINER: cosmosDbSettings.chatContainer
       COSMOSDB__CACHECONTAINER: cosmosDbSettings.cacheContainer
       COSMOSDB__PRODUCTCONTAINER: cosmosDbSettings.productContainer
-      COSMOSDB__PRODUCTDATASOURCE: cosmosDbSettings.productDataSource
+      COSMOSDB__PRODUCTDATASOURCEURI: cosmosDbSettings.productDataSourceUri
       CHAT__MAXCONTEXTWINDOW: chatSettings.maxContextWindow
       CHAT__CACHESIMILARITYSCORE: chatSettings.cacheSimilarityScore
       CHAT__PRODUCTMAXRESULTS: chatSettings.productMaxResults

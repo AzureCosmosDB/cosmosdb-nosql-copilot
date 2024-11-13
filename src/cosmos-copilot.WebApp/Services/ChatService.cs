@@ -3,7 +3,6 @@ using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.Tokenizers;
-using Microsoft.VisualBasic;
 
 namespace Cosmos.Copilot.Services;
 
@@ -29,7 +28,7 @@ public class ChatService
 
         _maxContextWindow = Int32.TryParse(maxContextWindow, out _maxContextWindow) ? _maxContextWindow : 3;
         _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
-        _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults: 10;
+        _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults: 5;
 
         _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-4o");
     }
