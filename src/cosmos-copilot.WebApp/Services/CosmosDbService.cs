@@ -353,13 +353,13 @@ public class CosmosDbService
 
         string queryText = $"""
                 SELECT
-                    Top @maxResults c
+                    Top @maxResults c.id, c.categoryId, c.categoryName, c.name, c.description, c.price
                 FROM c
-                WHERE FullTextContainsAny(c.text, {searchWords})
+                WHERE FullTextContainsAny(c.text, {@searchWords})
             """;
 
         var queryDef = new QueryDefinition(query: queryText)
-            .WithParameter("@maxResults", 5)
+            .WithParameter("@maxResults", productMaxResults)
             .WithParameter("@searchWords", searchWords);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
@@ -394,24 +394,22 @@ public class CosmosDbService
         List<Product> results = new();
 
         string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        string searchWords = string.Join(", ", words.Select(word => $"'{word}'"));
         string rankedWords = $"[{string.Join(", ", words.Select(word => $"'{word}'"))}]";
 
         string queryText = $"""
                 SELECT
-                    Top @maxResults c
+                    Top @maxResults c.id, c.categoryId, c.categoryName, c.name, c.description, c.price
                 FROM c
-                WHERE FullTextContainsAny(c.text, {searchWords})
                 ORDER BY RRF_SCORE(
-                    RANK(FullTextScore(c.text, {rankedWords}))
+                    RANK(FullTextScore(c.text, {@rankedWords}))
                     RANK(VectorDistance(c.vectors, @vectors))
                     )
             """;
 
-        var queryDef = new QueryDefinition(query: queryText).WithParameter(
-            "@vectors",
-            promptVectors
-        );
+        var queryDef = new QueryDefinition(query: queryText)
+            .WithParameter("@maxResults", productMaxResults)
+            .WithParameter("@rankedWords", rankedWords)
+            .WithParameter("@vectors", promptVectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
             queryDefinition: queryDef
