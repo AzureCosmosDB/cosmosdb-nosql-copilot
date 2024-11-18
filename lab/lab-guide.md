@@ -113,7 +113,7 @@ Now it's time to make sure the application works as expected. In this step, buil
 
     ![aspire-dashboard.png](../media/aspire-dashboard.png)
 
-1. Create a new chat and enter `What are the most expensive bikes?`. The AI assistant will respond with text, **"Place holder response"** and a token value of zero.
+1. Create a new chat and enter `What are the most expensive bikes?`. The AI assistant will respond with text, **"Place holder response"** and a token value of zero. We'll explain tokens in a later exercise.
 
     ![create-new-chat.png](../media/create-new-chat.png)
 
@@ -147,11 +147,11 @@ In this lab, we'll use two Semantic Kernel OpenAI Service Extensions and the Sem
 
     The builder with this new line will initialize and inject a built-in service from OpenAI. **Chat Completion** refers to response generation from a GPT model.
 
->[!note] This lab requires copying code from the instructions into Visual Studio Code. For proper formatting while copying code blocks greater than one line, you will need to manually tab the 2nd+ lines of code. You can tab multiple lines at once using this keyboard shortcut: *Shift + Alt + dragging mouse to select multiple lines*.
+>[!note] This lab requires copying code from the instructions into Visual Studio Code. For proper formatting while copying code blocks greater than one line, you will need to manually tab the 2nd+ lines of code. You can tab multiple lines at once using this keyboard shortcut: *Shift + Alt + click* then drag the mouse to select multiple lines.
 
 We will now implement the function that uses this Semantic Kernel extension to generate a chat completion for a given user prompt. The function will return the text generated as well as the number of tokens to generate a response.
 
-1. Within the same **SemanticKernelService.cs** file, locate the **GetChatCompletionAsync()** method. Below the line to create a new *ChatHistory()* object, comment the line adding a new system message and pass in the **_systemPrompt** value as seen below.
+1. Within the same **SemanticKernelService.cs** file, locate the **GetChatCompletionAsync()** method. Below the existing line to create a new *skChatHistory* variable, copy the new line to add the **_systemPrompt** value as a system message shown below.
 
     ```csharp
     var skChatHistory = new ChatHistory();
@@ -171,7 +171,7 @@ We will now implement the function that uses this Semantic Kernel extension to g
     }
     ```
 
-1. Next, we need to execute the call to Azure OpenAI using the Semantic Kernel extension we configured earlier. We will get the completion text and tokens consumed to return to the user. Locate the first three lines below and comment them out, then add the lines of code below.
+1. Next, we need to execute the call to Azure OpenAI using the Semantic Kernel extension we configured earlier. We will get the completion text and tokens consumed to return to the user. Locate the first three lines below and comment them out, then add these lines of code underneath your foreach loop.
 
     ```csharp
     //string completion = "Place holder response";
@@ -249,7 +249,7 @@ At this point, your application is ready to test our Semantic Kernel implementat
 
 1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
 
-1. Let's test our new completions implementation. In a new chat session, type in the question, `What are the most expensive bikes?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information.
+1. Let's test our new completions implementation. In a new chat session, type in the question, `What are the most expensive bikes?`. This time the AI assistant should respond with "24K Gold Extreme Mountain Bike" priced at $1 million, and some additional information. If the project runs and you no longer see the placeholder completion, don't worry if you get a different bike answer from the model.
 
 1. Keep the application running, we'll use this same session in the next exercise.
 
@@ -1065,6 +1065,117 @@ Here is a simple mental exercise for a semantic cache that *does not* cache the 
 Now, say another user in a different session asked, "What is the most expensive bike seat?", the LLM will respond with expensive bike seat options. If that user then asked, "What is the least expensive?", the cache will return a list of bikes from it's cached completion, which of course is not what the user was looking for when they asked about bike seats.
 
 This demonstrates why a semantic cache must cache within a context window. The context window already provides contextual relevance for an LLM to generate completions. This makes it a logical choice for how the cache should work. Implementing this is simple because we are already managing chat history for our app. We just send all the user prompts as a string to be vectorized, then store this with the completion that gets generated by the LLM. Then when any user comes along later, only those with the *same sequence of questions* within their context window will get that specific cached response.
+
+---
+
+# Bonus Exercise: Explore the .NET Aspire Dashboard
+
+The .NET Aspire dashboard is a great resource for monitoring your application in development. It helps you understand the request flow in your application and provides a centralized place for viewing traces and logs in real-time. 
+
+So far, we've used the .NET Aspire dashboard to launch our web application. Let's explore the other features exposed in the dashboard.
+
+1. Back in our terminal, start the application using **dotnet run**.
+
+    ```bash
+    dotnet run
+    ```
+
+1. Use `CTRL + click` to open the .NET Aspire dashboard. Once the dashboard loads, click the link to open our chat application.
+
+1. Before we can explore the features of the dashboard, we'll need to issue new requests. In the chat application, start a new chat session and ask a question `What bike accessories do you have?`. You should get a response with a few accessories.
+
+1. Start another new chat session, and ask the same question `What bike accessories do you have?` again. This time, you should get a cache hit with an immediate response consuming zero generation tokens.
+
+1. Navigate back to the .NET Aspire dashboard tab in the web browser. Select the **Traces** page from the left-side toolbar. You will see all of the network requests in your application represented chronologically here.
+
+    ![aspire-traces.png](../media/aspire-traces.png)
+
+1. Notice there are several *GET* calls and a *POST* as the Blazor application starts up. Click on the last trace to expand the service calls being made in the application. 
+
+Each request made to Azure Cosmos DB or Azure OpenAI is represented as a span. The first few spans represent background tasks in the web application to query Azure Cosmos DB for existing chats and to verify the product data has been loaded. Each time a new container in Azure Cosmos DB is accessed, the SDK makes several HTTP requests to get metadata for the container. You will see these represented as child spans. Let's explore the spans in this dashboard and correlate them to the features you implemented so far in our chat application.
+
+1. Scroll down in the list of traces. If you created a new chat session for this exercise, find the second **DATA cosmosdb CreateItemAsync chat** span (the first would be to create the chat session item itself). If you didn't create a new chat session, find the first *CreateItemAsync*.This is the call to store your first prompt in the Azure Cosmos DB chat container. 
+
+    You may need to expand the *Name* column by clicking the vertical line to the left of the *0s* column and dragging it to the right. 
+
+1. Because we haven't asked about bike accessories yet, this was a cache miss. Let's explore the request flow and validate it matches our expectations.
+
+    ![cache-miss-traces.png](../media/cache-miss-traces.png)
+
+    Your traces should resemble the image above. If you see an error from *169.254.169.254:80*, this is a metadata request made by the SDK to get information about your compute environment. For unsupported VM types, this is expected to fail and is safe to ignore.
+
+    1. First, there is a call to the Azure Cosmos DB chat container to store the prompt you typed in the chat.
+    1. Next, the call to the chat container represents building the context window. We need to query for any previous messages in the chat session in order to get contextually relevant results.
+    1. Then, this call to Azure OpenAI represents getting the vector embeddings from our prompt.
+    1. This call to the cache container checks if we found a cache hit by passing in the vector embeddings and performing a vector search for similar responses. Notice there are child HTTP calls under this request. That is the SDK initializing connections for the cache container. The other containers had already been used earlier on in the application and therefore had already been initialized.
+    1. This call represents a second round trip for the get cache query.
+    1. Because we had a cache miss, next we queried for products relevant to the user prompt. This call uses vector search to find products from the products container to later pass to Azure OpenAI. The product data returned is the key component for implementing the RAG pattern.
+    1. Next, we have the call to Azure OpenAI to get the chat completion for our prompt and RAG data. Notice the calls to Azure OpenAI have a higher duration than the rest of the calls, this is because we're sending a lot of context to the model to generate a completion.
+    1. After generating a completion, we store the result in the cache to avoid having to compute a response for similar questions in the future.
+    1. Then we call to retrieve the chat container item representing this chat session.
+    1. Lastly, we execute a bulk upload of the chat completion and session to the chat container.
+
+    This request flow maps to the LLM Pipeline we created in the **ChatService/GetChatCompletionAsync()** function.
+
+1. Below the cache miss request flow, let's analyze the spans for the second prompt we gave. This time, we started another new chat session and entered the same question, generating a cache hit. You will notice the first 3 spans are the same, but because we had a cache hit, there are fewer steps.
+
+    ![cache-hit-traces.png](../media/cache-hit-traces.png)
+
+    1. First, there is a call to the Azure Cosmos DB chat container to store the prompt you typed in the chat.
+    1. Next, the call to the chat container represents building the context window. We need to query for any previous messages in the chat session in order to get contextually relevant results.
+    1. Then, this call to Azure OpenAI represents getting the vector embeddings from our prompt.
+    1. This call to the cache container checks if we found a cache hit by passing in the vector embeddings and performing a vector search for similar responses. Because we've already made requests to the cache container in the previous chat, there are no child span initialization calls either.
+    1. Then we call to retrieve the chat container item representing this chat session.
+    1. Lastly, we execute a bulk upload of the chat completion and session to the chat container.
+
+    This request flow also maps to the LLM Pipeline we created in the **ChatService/GetChatCompletionAsync()** function. Because we had a cache hit, we execute the code in the **if** statement that skips the calls to find relevant products and generate a completion from Azure OpenAI. Instead, we can return the cached completion to the user.
+
+1. These traces and spans are emitted using OpenTelemetry, which is configured by default when you use .NET Aspire. Every SDK can provide custom OpenTelemetry attributes to add extra information to spans about the request. Azure Cosmos DB emits several custom attributes that can help you understand what's happening in your application. Click on the 4th span from the previous step, which represents the query to the cache container. Optionally, click the icon to switch from horizontal to vertical view.
+
+    ![cache-query-span.png](../media/cache-query-span.png)
+
+    Notice the **db.cosmosdb.item_count** with a value of 1. This shows that we had one result returned from our query. Explore the other attributes provided, and click on spans for different operations to see the attributes provided for every request type.
+
+1. Keep the .NET Aspire dashboard open and leave the application running. We'll use it again in the next set of steps.
+
+The Azure Cosmos DB SDK also emits logs through OpenTelemetry which appear in the .NET Aspire dashboard. Depending on the log level configured for your application, you can receive logs for errors and warnings. These logs are very helpful during application development to gain more information about failed or slow requests.
+
+1. First, let's look at the log configuration for Azure Cosmos DB. Open the **cosmos-copilot.WebApp/Program.cs** file. 
+
+1. Find the **builder.AddAzureCosmosClient()** function call, copied again here.
+
+    ```csharp
+    builder.AddAzureCosmosClient(    
+        "cosmos-copilot",    
+        settings =>    
+        {        
+            settings.AccountEndpoint = new Uri(cosmosEndpoint);        
+            settings.Credential = new DefaultAzureCredential();        
+            settings.DisableTracing = false;    
+        },    
+        clientOptions => 
+        {        
+            clientOptions.ApplicationName = "cosmos-copilot";        
+            clientOptions.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions()        
+            {            
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase        
+            };        
+            clientOptions.CosmosClientTelemetryOptions = new()        
+            {            
+                CosmosThresholdOptions = new()            
+                {                
+                    PointOperationLatencyThreshold = TimeSpan.FromMilliseconds(10),                
+                    NonPointOperationLatencyThreshold = TimeSpan.FromMilliseconds(20)            
+                }        
+            };    
+        });
+    ```
+
+    Notice the **clientOptions.CosmosClientTelemetryOptions** call. This is where threshold options are configured for emitting logs from Azure Cosmos DB requests. There are separate configurations for **PointOperationLatencyThreshold** and **NonPointOperationLatencyThreshold** because requests interacting with a single item are frequently much lower latency than multi-item operations. These two thresholds are set extremely low in this application to ensure we have some logs to look at. In a production application, you likely want to set this to a higher value to avoid having noisy logs for every request.
+
+1. Back in the .NET Aspire dashboard, navigate to the **Structured** tab. Click on any of the warnings with a *ThresholdViolation*. These represent requests that had higher latency than the thresholds we configured while creating our CosmosClient. The **Message** contains the Azure Cosmos DB diagnostic string with detailed information about the request.
+
+    ![aspire-logs.png](../media/aspire-logs.png)
 
 ---
 
