@@ -42,6 +42,9 @@ var containers = [
     vectorEmbeddingPolicy: {
       vectorEmbeddings: []
     }
+    fullTextPolicy: {
+      fullTextPaths: []
+    }
   }
   {
     name: 'cache' // Container for cached messages
@@ -63,6 +66,14 @@ var containers = [
           type: 'diskANN'
         }
       ]
+      fullTextIndexes: [
+        {
+          path: '/tags'
+        }
+        {
+          path: '/description'
+        }
+      ]
     }
     vectorEmbeddingPolicy: {
       vectorEmbeddings: [
@@ -71,6 +82,19 @@ var containers = [
           dataType: 'float32'
           dimensions: 1536
           distanceFunction: 'cosine'
+        }
+      ]
+    }
+    fullTextPolicy: {
+      defaultLanguage: 'en-US'
+      fullTextPaths: [
+        {
+          path: '/tags'
+          language: 'en-US'
+        }
+        {
+          path: '/description'
+          language: 'en-US'
         }
       ]
     }
@@ -95,6 +119,14 @@ var containers = [
           type: 'diskANN'
         }
       ]
+      fullTextIndexes: [
+        {
+          path: '/tags'
+        }
+        {
+          path: '/description'
+        }
+      ]
     }
     vectorEmbeddingPolicy: {
       vectorEmbeddings: [
@@ -103,6 +135,19 @@ var containers = [
           dataType: 'float32'
           dimensions: 1536
           distanceFunction: 'cosine'
+        }
+      ]
+    }
+    fullTextPolicy: {
+      defaultLanguage: 'en-US'
+      fullTextPaths: [
+        {
+          path: '/tags'
+          language: 'en-US'
+        }
+        {
+          path: '/description'
+          language: 'en-US'
         }
       ]
     }
@@ -117,6 +162,7 @@ module cosmosDbAccount '../core/database/cosmos-db/nosql/account.bicep' = {
     tags: tags
     enableServerless: true
     enableVectorSearch: true
+    enableNoSQLFullTextSearch: true
     disableKeyBasedAuth: true
   }
 }
