@@ -29,6 +29,9 @@ param indexingPolicy object = {}
 @description('Optional vector embedding policy for the container.')
 param vectorEmbeddingPolicy object = {}
 
+@description('Optional full text policy for the container.')
+param fullTextPolicy object = {}
+
 var options = setThroughput
   ? autoscale
       ? {
@@ -73,6 +76,11 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
       !empty(vectorEmbeddingPolicy)
         ? {
             vectorEmbeddingPolicy: vectorEmbeddingPolicy
+          }
+        : {},
+      !empty(fullTextPolicy)
+        ? {
+            fullTextPolicy: fullTextPolicy
           }
         : {}
     )

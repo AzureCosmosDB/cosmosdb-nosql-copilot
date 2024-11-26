@@ -343,24 +343,27 @@ public class CosmosDbService
     /// </summary>
     /// <param name="promptText">Text used to do the search</param>
     /// <param name="productMaxResults">Limit the number of returned items</param>
-    /// <returns>JSON string of returned products</returns>
-    public async Task<string> FullTextSearchProductAsync(string promptText, int productMaxResults)
+    /// <returns>List of returned products</returns>
+    public async Task<List<Product>> FullTextSearchProductsAsync(string promptText, int productMaxResults) 
     {
         List<Product> results = new();
 
-        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        string searchWords = string.Join(", ", words.Select(word => $"'{word}'"));
+        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string rankedWords = $"[{string.Join(", ", words.Select(word => $"'{word}'"))}]";
 
         string queryText = $"""
                 SELECT
-                    Top @maxResults c.id, c.categoryId, c.categoryName, c.name, c.description, c.price
+                    Top {productMaxResults} c.id, c.categoryId, c.categoryName, c.sku, c.name, c.description, c.price, c.tags
                 FROM c
-                WHERE FullTextContainsAny(c.text, {@searchWords})
+                WHERE 
+                    FullTextContainsAny(c.description, {rankedWords}) OR
+                    FullTextContainsAny(c.tags, {rankedWords})
             """;
 
-        var queryDef = new QueryDefinition(query: queryText)
-            .WithParameter("@maxResults", productMaxResults)
-            .WithParameter("@searchWords", searchWords);
+        var queryDef = new QueryDefinition(query: queryText);
+            //These are broken during early preview, pass in directly
+            //.WithParameter("@maxResults", productMaxResults)
+            //.WithParameter("@words", rankedWords);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
             queryDefinition: queryDef
@@ -373,9 +376,7 @@ public class CosmosDbService
             results.AddRange(response);
         }
 
-        //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonSerializer.Serialize(results);
-        return productsString;
+        return results;
     }
 
     /// <summary>
@@ -384,8 +385,8 @@ public class CosmosDbService
     /// <param name="promptText">Text used to do the search</param>
     /// <param name="promptVectors">Vectors used to do the search</param>
     /// <param name="productMaxResults">Limit the number of returned items</param>
-    /// <returns>JSON string of returned products</returns>
-    public async Task<string> HybridSearchProductAsync(
+    /// <returns>List of returned products</returns>
+    public async Task<List<Product>> HybridSearchProductsAsync(
         string promptText,
         float[] promptVectors,
         int productMaxResults
@@ -393,22 +394,24 @@ public class CosmosDbService
     {
         List<Product> results = new();
 
-        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         string rankedWords = $"[{string.Join(", ", words.Select(word => $"'{word}'"))}]";
 
         string queryText = $"""
                 SELECT
-                    Top @maxResults c.id, c.categoryId, c.categoryName, c.name, c.description, c.price
+                    Top {productMaxResults} c.id, c.categoryId, c.categoryName, c.sku, c.name, c.description, c.price, c.tags
                 FROM c
-                ORDER BY RRF_SCORE(
-                    RANK(FullTextScore(c.text, {@rankedWords}))
-                    RANK(VectorDistance(c.vectors, @vectors))
+                ORDER BY RANK RRF(
+                    FullTextScore(c.description, {rankedWords}),
+                    FullTextScore(c.tags, {rankedWords}),
+                    VectorDistance(c.vectors, @vectors)
                     )
             """;
 
         var queryDef = new QueryDefinition(query: queryText)
-            .WithParameter("@maxResults", productMaxResults)
-            .WithParameter("@rankedWords", rankedWords)
+            //These are broken during early preview, pass in directly
+            //.WithParameter("@maxResults", productMaxResults)
+            //.WithParameter("@rankedWords", rankedWords)
             .WithParameter("@vectors", promptVectors);
 
         using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
@@ -422,9 +425,7 @@ public class CosmosDbService
             results.AddRange(response);
         }
 
-        //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonSerializer.Serialize(results);
-        return productsString;
+        return results;
     }
 
     /// <summary>

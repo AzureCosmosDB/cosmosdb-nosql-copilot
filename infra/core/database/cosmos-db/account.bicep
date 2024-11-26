@@ -4,7 +4,7 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 
-@allowed(['GlobalDocumentDB', 'MongoDB', 'Parse'])
+@allowed(['GlobalDocumentDB'])
 @description('Sets the kind of account.')
 param kind string = 'GlobalDocumentDB'
 
@@ -39,11 +39,6 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     ]
     enableAutomaticFailover: false
     enableMultipleWriteLocations: false
-    apiProperties: (kind == 'MongoDB')
-      ? {
-          serverVersion: '4.2'
-        }
-      : {}
     disableLocalAuth: disableKeyBasedAuth
     capabilities: union(
       (enableServerless)

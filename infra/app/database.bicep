@@ -59,19 +59,15 @@ var containers = [
           path: '/*'
         }
       ]
-      //excludedPaths: [{}]
+      excludedPaths: [
+        {
+          path: '/vectors/?'
+        }
+      ]
       vectorIndexes: [
         {
           path: '/vectors'
           type: 'diskANN'
-        }
-      ]
-      fullTextIndexes: [
-        {
-          path: '/tags'
-        }
-        {
-          path: '/description'
         }
       ]
     }
@@ -86,17 +82,7 @@ var containers = [
       ]
     }
     fullTextPolicy: {
-      defaultLanguage: 'en-US'
-      fullTextPaths: [
-        {
-          path: '/tags'
-          language: 'en-US'
-        }
-        {
-          path: '/description'
-          language: 'en-US'
-        }
-      ]
+      fullTextPaths: []
     }
   }
   {
@@ -189,6 +175,7 @@ module cosmosDbContainers '../core/database/cosmos-db/nosql/container.bicep' = [
       partitionKeyPaths: container.partitionKeyPaths
       indexingPolicy: container.indexingPolicy
       vectorEmbeddingPolicy: container.vectorEmbeddingPolicy
+      fullTextPolicy: container.fullTextPolicy
     }
   }
 ]

@@ -27,8 +27,8 @@ public class ChatService
         var productMaxResults = chatOptions.Value.ProductMaxResults;
 
         _maxContextWindow = Int32.TryParse(maxContextWindow, out _maxContextWindow) ? _maxContextWindow : 3;
-        _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.99;
-        _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults: 5;
+        _cacheSimilarityScore = Double.TryParse(cacheSimilarityScore, out _cacheSimilarityScore) ? _cacheSimilarityScore : 0.95;
+        _productMaxResults = Int32.TryParse(productMaxResults, out _productMaxResults) ? _productMaxResults: 10;
 
         _tokenizer = Tokenizer.CreateTiktokenForModel("gpt-4o");
     }
@@ -69,17 +69,15 @@ public class ChatService
         }
 
         //RAG Pattern Vector search results for product data
-        string searchResults = await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);
+        List<Product> searchResults = await _semanticKernelService.SearchProductsAsync(promptVectors, _productMaxResults);
 
         // RAG Pattern Hybrid search results for product data
-        // string searchResults = await _cosmosDbService.HybridSearchProductsAsync(promptText, promptVectors, _productMaxResults);
-
-        //Call Semantic Kernel to do a vector search generate a new completion
-        (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = await _semanticKernelService.GetRagCompletionAsync(contextWindow, searchResults);
+        // Only use this if you deployed into one of the regions that supports Hybrid Search
+        //List<Product> searchResults = await _cosmosDbService.HybridSearchProductsAsync(promptText, promptVectors, _productMaxResults);
 
         //Call Semantic Kernel to generate a new completion
         (chatMessage.Completion, chatMessage.GenerationTokens, chatMessage.CompletionTokens) = 
-            await _semanticKernelService.GetRagCompletionAsync(contextWindow, vectorSearchResults);
+            await _semanticKernelService.GetRagCompletionAsync(contextWindow, searchResults);
 
         //Cache the prompts in the current context window and their vectors with the generated completion
         await _cosmosDbService.CachePutAsync(new CacheItem(promptVectors, prompts, chatMessage.Completion));
