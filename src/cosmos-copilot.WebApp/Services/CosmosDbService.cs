@@ -1,8 +1,8 @@
-﻿using Cosmos.Copilot.Models;
+﻿using System.Text.Json;
+using Cosmos.Copilot.Models;
 using Cosmos.Copilot.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -48,15 +48,23 @@ public class CosmosDbService
         Container cacheContainer = database.GetContainer(cacheContainerName)!;
         Container productContainer = database.GetContainer(productContainerName)!;
 
+        _chatContainer =
+            chatContainer
+            ?? throw new ArgumentException(
+                "Unable to connect to existing Azure Cosmos DB container or database."
+            );
 
-        _chatContainer = chatContainer ??
-            throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
+        _cacheContainer =
+            cacheContainer
+            ?? throw new ArgumentException(
+                "Unable to connect to existing Azure Cosmos DB container or database."
+            );
 
-        _cacheContainer = cacheContainer ??
-            throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
-
-        _productContainer = productContainer ??
-            throw new ArgumentException("Unable to connect to existing Azure Cosmos DB container or database.");
+        _productContainer =
+            productContainer
+            ?? throw new ArgumentException(
+                "Unable to connect to existing Azure Cosmos DB container or database."
+            );
     }
 
     /// <summary>
@@ -68,7 +76,11 @@ public class CosmosDbService
     /// <returns>Newly created chat session item.</returns>
     private static PartitionKey GetPK(string tenantId, string userId, string sessionId)
     {
-        if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(sessionId))
+        if (
+            !string.IsNullOrEmpty(tenantId)
+            && !string.IsNullOrEmpty(userId)
+            && !string.IsNullOrEmpty(sessionId)
+        )
         {
             PartitionKey partitionKey = new PartitionKeyBuilder()
                 .Add(tenantId)
@@ -78,26 +90,20 @@ public class CosmosDbService
 
             return partitionKey;
         }
-        else if(!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(userId))
+        else if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(userId))
         {
-
-            PartitionKey partitionKey = new PartitionKeyBuilder()
-                .Add(tenantId)
-                .Add(userId)
-                .Build();
+            PartitionKey partitionKey = new PartitionKeyBuilder().Add(tenantId).Add(userId).Build();
 
             return partitionKey;
-
         }
-        else 
+        else
         {
-            PartitionKey partitionKey = new PartitionKeyBuilder()
-            .Add(tenantId)
-            .Build();
+            PartitionKey partitionKey = new PartitionKeyBuilder().Add(tenantId).Build();
 
             return partitionKey;
         }
     }
+
     /// <summary>
     /// Creates a new chat session.
     /// </summary>
@@ -107,7 +113,7 @@ public class CosmosDbService
     /// <returns>Newly created chat session item.</returns>
     public async Task<Session> InsertSessionAsync(string tenantId, string userId, Session session)
     {
-        PartitionKey partitionKey = GetPK(tenantId, userId,session.SessionId);
+        PartitionKey partitionKey = GetPK(tenantId, userId, session.SessionId);
         return await _chatContainer.CreateItemAsync<Session>(
             item: session,
             partitionKey: partitionKey
@@ -141,10 +147,15 @@ public class CosmosDbService
     {
         PartitionKey partitionKey = GetPK(tenantId, userId, string.Empty);
 
-        QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
-            .WithParameter("@type", nameof(Session));
+        QueryDefinition query = new QueryDefinition(
+            "SELECT DISTINCT * FROM c WHERE c.type = @type"
+        ).WithParameter("@type", nameof(Session));
 
-        FeedIterator<Session> response = _chatContainer.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+        FeedIterator<Session> response = _chatContainer.GetItemQueryIterator<Session>(
+            query,
+            null,
+            new QueryRequestOptions() { PartitionKey = partitionKey }
+        );
 
         List<Session> output = new();
         while (response.HasMoreResults)
@@ -162,7 +173,12 @@ public class CosmosDbService
     /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session identifier used to filter messsages.</param>
     /// <returns>List of chat message items for the specified session.</returns>
-    public async Task<List<Message>> GetSessionContextWindowAsync(string tenantId, string userId, string sessionId, int maxContextWindow)
+    public async Task<List<Message>> GetSessionContextWindowAsync(
+        string tenantId,
+        string userId,
+        string sessionId,
+        int maxContextWindow
+    )
     {
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
@@ -188,7 +204,11 @@ public class CosmosDbService
             .WithParameter("@type", nameof(Message))
             .WithParameter("@maxContextWindow", maxContextWindow);
 
-        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(
+            query,
+            null,
+            new QueryRequestOptions() { PartitionKey = partitionKey }
+        );
 
         List<Message> output = new();
         while (results.HasMoreResults)
@@ -210,15 +230,25 @@ public class CosmosDbService
     /// <param name="userId">Id of User.</param>
     /// <param name="sessionId">Chat session identifier used to filter messsages.</param>
     /// <returns>List of chat message items for the specified session.</returns>
-    public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId, string sessionId)
+    public async Task<List<Message>> GetSessionMessagesAsync(
+        string tenantId,
+        string userId,
+        string sessionId
+    )
     {
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
-        QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.sessionId = @sessionId AND c.type = @type")
+        QueryDefinition query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.sessionId = @sessionId AND c.type = @type"
+        )
             .WithParameter("@sessionId", sessionId)
-        .WithParameter("@type", nameof(Message));
+            .WithParameter("@type", nameof(Message));
 
-        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+        FeedIterator<Message> results = _chatContainer.GetItemQueryIterator<Message>(
+            query,
+            null,
+            new QueryRequestOptions() { PartitionKey = partitionKey }
+        );
 
         List<Message> output = new();
         while (results.HasMoreResults)
@@ -259,18 +289,21 @@ public class CosmosDbService
         return await _chatContainer.ReadItemAsync<Session>(
             partitionKey: partitionKey,
             id: sessionId
-            );
+        );
     }
 
     /// <summary>
-    /// Batch create chat message and update session.    
+    /// Batch create chat message and update session.
     /// </summary>
     /// <param name="tenantId">Id of Tenant.</param>
     /// <param name="userId">Id of User.</param>
     /// <param name="messages">Chat message and session items to create or replace.</param>
-    public async Task UpsertSessionBatchAsync(string tenantId, string userId, params dynamic[] messages)
+    public async Task UpsertSessionBatchAsync(
+        string tenantId,
+        string userId,
+        params dynamic[] messages
+    )
     {
-
         //Make sure items are all in the same partition
         if (messages.Select(m => m.SessionId).Distinct().Count() > 1)
         {
@@ -294,15 +327,106 @@ public class CosmosDbService
     /// <param name="tenantId">Id of Tenant</param>
     /// <param name="userId">Id of User</param>
     /// <param name="sessionId">Chat session id for the session and all the chat messages in the partition.</param>
-    public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
+    public async Task DeleteSessionAndMessagesAsync(
+        string tenantId,
+        string userId,
+        string sessionId
+    )
     {
-
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
         await _chatContainer.DeleteAllItemsByPartitionKeyStreamAsync(partitionKey);
-
     }
 
+    /// <summary>
+    /// Performs full text search on the CosmosDB product container
+    /// </summary>
+    /// <param name="promptText">Text used to do the search</param>
+    /// <param name="productMaxResults">Limit the number of returned items</param>
+    /// <returns>List of returned products</returns>
+    public async Task<List<Product>> FullTextSearchProductsAsync(string promptText, int productMaxResults) 
+    {
+        List<Product> results = new();
+
+        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string rankedWords = $"[{string.Join(", ", words.Select(word => $"'{word}'"))}]";
+
+        string queryText = $"""
+                SELECT
+                    Top {productMaxResults} c.id, c.categoryId, c.categoryName, c.sku, c.name, c.description, c.price, c.tags
+                FROM c
+                WHERE 
+                    FullTextContainsAny(c.description, {rankedWords}) OR
+                    FullTextContainsAny(c.tags, {rankedWords})
+            """;
+
+        var queryDef = new QueryDefinition(query: queryText);
+            //These are broken during early preview, pass in directly
+            //.WithParameter("@maxResults", productMaxResults)
+            //.WithParameter("@words", rankedWords);
+
+        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
+            queryDefinition: queryDef
+        );
+
+        while (resultSet.HasMoreResults)
+        {
+            FeedResponse<Product> response = await resultSet.ReadNextAsync();
+
+            results.AddRange(response);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Performs hybrid search on the CosmosDB product container
+    /// </summary>
+    /// <param name="promptText">Text used to do the search</param>
+    /// <param name="promptVectors">Vectors used to do the search</param>
+    /// <param name="productMaxResults">Limit the number of returned items</param>
+    /// <returns>List of returned products</returns>
+    public async Task<List<Product>> HybridSearchProductsAsync(
+        string promptText,
+        float[] promptVectors,
+        int productMaxResults
+    )
+    {
+        List<Product> results = new();
+
+        string[] words = promptText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string rankedWords = $"[{string.Join(", ", words.Select(word => $"'{word}'"))}]";
+
+        string queryText = $"""
+                SELECT
+                    Top {productMaxResults} c.id, c.categoryId, c.categoryName, c.sku, c.name, c.description, c.price, c.tags
+                FROM c
+                ORDER BY RANK RRF(
+                    FullTextScore(c.description, {rankedWords}),
+                    FullTextScore(c.tags, {rankedWords}),
+                    VectorDistance(c.vectors, @vectors)
+                    )
+            """;
+
+        var queryDef = new QueryDefinition(query: queryText)
+            //These are broken during early preview, pass in directly
+            //.WithParameter("@maxResults", productMaxResults)
+            //.WithParameter("@rankedWords", rankedWords)
+            .WithParameter("@vectors", promptVectors);
+
+        using FeedIterator<Product> resultSet = _productContainer.GetItemQueryIterator<Product>(
+            queryDefinition: queryDef
+        );
+
+        while (resultSet.HasMoreResults)
+        {
+            FeedResponse<Product> response = await resultSet.ReadNextAsync();
+
+            results.AddRange(response);
+        }
+
+        return results;
+    }
 
     /// <summary>
     /// Perform a vector search to find an item in the cache collection
@@ -313,7 +437,6 @@ public class CosmosDbService
     /// <param name="similarityScore">Value to determine how similar the vectors. >0.99 is exact match.</param>
     public async Task<string> GetCacheAsync(float[] vectors, double similarityScore)
     {
-
         string cacheResponse = "";
 
         string queryText = $"""
@@ -326,12 +449,13 @@ public class CosmosDbService
                 VectorDistance(c.vectors, @vectors)
             """;
 
-        var queryDef = new QueryDefinition(
-                query: queryText)
+        var queryDef = new QueryDefinition(query: queryText)
             .WithParameter("@vectors", vectors)
             .WithParameter("@similarityScore", similarityScore);
 
-        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(queryDefinition: queryDef);
+        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(
+            queryDefinition: queryDef
+        );
 
         while (resultSet.HasMoreResults)
         {
@@ -353,7 +477,6 @@ public class CosmosDbService
     /// <param name="cacheItem">Item to add to the cache collection</param>
     public async Task CachePutAsync(CacheItem cacheItem)
     {
-
         await _cacheContainer.UpsertItemAsync<CacheItem>(item: cacheItem);
     }
 
@@ -363,7 +486,7 @@ public class CosmosDbService
     /// <param name="vectors">Vectors used to perform the semantic search. Similarity Score is set to 0.99 for exact match</param>
     public async Task CacheRemoveAsync(float[] vectors)
     {
-        double similarityScore = 0.99;        
+        double similarityScore = 0.99;
 
         string queryText = $"""
             SELECT Top 1 c.id
@@ -372,12 +495,13 @@ public class CosmosDbService
             ORDER BY VectorDistance(c.vectors, @vectors)
             """;
 
-        var queryDef = new QueryDefinition(
-             query: queryText)
+        var queryDef = new QueryDefinition(query: queryText)
             .WithParameter("@vectors", vectors)
             .WithParameter("@similarityScore", similarityScore);
 
-        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(queryDefinition: queryDef);
+        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(
+            queryDefinition: queryDef
+        );
 
         while (resultSet.HasMoreResults)
         {
@@ -385,7 +509,10 @@ public class CosmosDbService
 
             foreach (CacheItem item in response)
             {
-                await _cacheContainer.DeleteItemAsync<CacheItem>(partitionKey: new PartitionKey(item.Id), id: item.Id);
+                await _cacheContainer.DeleteItemAsync<CacheItem>(
+                    partitionKey: new PartitionKey(item.Id),
+                    id: item.Id
+                );
                 return;
             }
         }
@@ -396,12 +523,13 @@ public class CosmosDbService
     /// </summary>
     public async Task CacheClearAsync()
     {
-
         string queryText = "SELECT c.id FROM c";
 
         var queryDef = new QueryDefinition(query: queryText);
 
-        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(queryDefinition: queryDef);
+        using FeedIterator<CacheItem> resultSet = _cacheContainer.GetItemQueryIterator<CacheItem>(
+            queryDefinition: queryDef
+        );
 
         while (resultSet.HasMoreResults)
         {
@@ -409,7 +537,10 @@ public class CosmosDbService
 
             foreach (CacheItem item in response)
             {
-                await _cacheContainer.DeleteItemAsync<CacheItem>(partitionKey: new PartitionKey(item.Id), id: item.Id);
+                await _cacheContainer.DeleteItemAsync<CacheItem>(
+                    partitionKey: new PartitionKey(item.Id),
+                    id: item.Id
+                );
             }
         }
     }

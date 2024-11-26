@@ -23,7 +23,7 @@ public class SemanticKernelService
 {
     //Semantic Kernel
     readonly Kernel kernel;
-    
+
     private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<Product> _productContainer;
     private readonly string _productDataSourceURI;
     private readonly Tokenizer _tokenizer;
@@ -96,7 +96,7 @@ public class SemanticKernelService
 
         // Initialize the Semantic Kernel
         var builder = Kernel.CreateBuilder();
-        
+
         //Add Azure OpenAI chat completion service
         builder.AddOpenAIChatCompletion(modelId: completionDeploymentName, openAIClient: openAiClient);
 
@@ -112,9 +112,9 @@ public class SemanticKernelService
             });
 
         // Add the Azure CosmosDB NoSQL Vector Store Record Collection for Products
-        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product>{ PartitionKeyPropertyName = "categoryId" };
+        var options = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<Product> { PartitionKeyPropertyName = "categoryId" };
         builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<Product>(productContainerName, options);
-        
+
         kernel = builder.Build();
 
         //Get a reference to the product container from Semantic Kernel for vector search and adding/updating products
@@ -122,7 +122,7 @@ public class SemanticKernelService
 
         //Create a tokenizer for the model
         _tokenizer = Tokenizer.CreateTiktokenForModel(modelName: "gpt-4o");
-        _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens: 2500;
+        _maxRagTokens = Int32.TryParse(maxRagTokens, out _maxRagTokens) ? _maxRagTokens : 1500;
         _maxContextTokens = Int32.TryParse(maxContextTokens, out _maxContextTokens) ? _maxContextTokens : 500;
 
     }
@@ -133,15 +133,15 @@ public class SemanticKernelService
     /// <param name="contextWindow">List of Message objects containing the context window (chat history) to send to the model.</param>
     /// <param name="ragData">Vector search results to send to the model.</param>
     /// <returns>Generated response along with tokens used to generate it and tokens for the completion text.</returns>
-    public async Task<(string completion, int generationTokens, int completionTokens)> GetRagCompletionAsync(List<Message> contextWindow, string ragData)
+    public async Task<(string completion, int generationTokens, int completionTokens)> GetRagCompletionAsync(List<Message> contextWindow, List<Product> ragData)
     {
-        
+
         //Manage token consumption per request by trimming the amount of vector search data sent to the model
-        ragData = TrimToTokenLimit(_maxRagTokens, ragData);
+        string ragDataString = LimitPayloadToMaxRagTokens(_maxRagTokens, ragData);
 
         //Add the system prompt and vector search data to the chat history
         var skChatHistory = new ChatHistory();
-        skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + ragData);
+        skChatHistory.AddSystemMessage(_systemPromptRetailAssistant + ragDataString);
 
         //Manage token consumption by trimming the amount of chat history sent to the model
         //Useful if the chat history is very large. It can also be summarized before sending to the model
@@ -151,11 +151,11 @@ public class SemanticKernelService
         {
             //Add up to the max tokens allowed
             if ((currentTokens += message.PromptTokens + message.CompletionTokens) > _maxContextTokens) break;
-            
+
             skChatHistory.AddUserMessage(message.Prompt);
             if (message.Completion != string.Empty)
                 skChatHistory.AddAssistantMessage(message.Completion);
-            
+
         }
 
         PromptExecutionSettings settings = new()
@@ -178,7 +178,7 @@ public class SemanticKernelService
         //The completion text is fed into subsequent requests so want an accurate count of tokens for that text in case
         int generationTokens = completionUsage.TotalTokenCount - completionUsage.OutputTokenCount;
         int completionTokens = completionUsage.OutputTokenCount;
-        
+
         return (completion, generationTokens, completionTokens);
     }
 
@@ -188,7 +188,7 @@ public class SemanticKernelService
     /// <param name="promptVectors">Vectors used to do the search</param>
     /// <param name="productMaxResults">Limit the number of returned items</param>
     /// <returns>JSON string of returned products</returns>
-    public async Task<string> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
+    public async Task<List<Product>> SearchProductsAsync(ReadOnlyMemory<float> promptVectors, int productMaxResults)
     {
         var options = new VectorSearchOptions { VectorPropertyName = "vectors", Top = productMaxResults };
 
@@ -201,28 +201,39 @@ public class SemanticKernelService
             resultRecords.Add(result);
         }
 
+        List<Product> productResults = new();
+
+        //add the product vector search results to products list
+        productResults.AddRange(resultRecords.Select(r => r.Record));
+        return productResults;
+
         //Serialize List<Product> to a JSON string to send to OpenAI
-        string productsString = JsonSerializer.Serialize(resultRecords);
-        return productsString;
+        //string productsString = JsonSerializer.Serialize(resultRecords);
+        //return productsString;
     }
 
     /// <summary>
-    /// Trims the text passed in using a tokenizer.
+    /// Limit the amount of RAG Pattern data sent to the LLM
     /// </summary>
-    /// <param name="maxTokens">Amount of tokens to calculate the amount of text to limit</param>
-    /// <param name="text">Text content to trim</param>
-    /// <returns>The reduced text</returns>
-    private string TrimToTokenLimit(int maxTokens, string text)
+    /// <param name="maxTokens">Maximum number of tokens for RAG Pattern Data</param>
+    /// <param name="ragData">List of data objects from RAG Pattern query</param>
+    /// <returns>String of returned products</returns>
+    private string LimitPayloadToMaxRagTokens(int maxTokens, List<Product> ragData)
     {
-        
-        // Get the index of the string up to the maxTokens
-        int trimIndex = _tokenizer.IndexOfTokenCount(text, maxTokens, out string? processedText, out _);
+        // Get the index of the array of objects up to the maxTokens
+        int trimIndex = 0;
+        int currentTokens = 0;
+
+        foreach (var text in ragData)
+        {
+            if ((currentTokens += _tokenizer.CountTokens(text.ToString()!)) > maxTokens) break;
+            trimIndex++;
+        }
 
         // Return the trimmed text based upon the maxTokens
-        return text.Substring(0, trimIndex);
-
+        return string.Join(" ", ragData.GetRange(0, trimIndex));
     }
-
+    
     /// <summary>
     /// Generates embeddings from the deployed OpenAI embeddings model using Semantic Kernel.
     /// </summary>

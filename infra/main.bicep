@@ -7,14 +7,17 @@ param environmentName string
 
 @minLength(1)
 @allowed([
-  'swedencentral'
-  'eastus2'
+  'canadaeast'
   'eastus'
+  'eastus2'
+  'francecentral'
   'japaneast'
-  'uksouth'
-  'northeurope'
+  'norwayeast'
+  'polandcentral'
+  'southindia'
+  'swedencentral'
+  'switzerlandnorth'
   'westus3'
-  'northcentralus'
 ])
 @description('Primary location for all resources.')
 param location string
@@ -41,8 +44,8 @@ var tags = {
 
 var chatSettings = {
   maxContextWindow: '3'
-  cacheSimilarityScore: '0.99'
-  productMaxResults: '5'
+  cacheSimilarityScore: '0.95'
+  productMaxResults: '10'
 }
 
 var openAiSettings = {
@@ -50,7 +53,7 @@ var openAiSettings = {
   completionDeploymentName: 'gpt-4o'
   embeddingModelName: 'text-embedding-3-large'
   embeddingDeploymentName: 'text-embedding-3-large'
-  maxRagTokens: '2500'
+  maxRagTokens: '1500'
   maxContextTokens: '500'
 }
 

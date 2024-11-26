@@ -42,6 +42,9 @@ var containers = [
     vectorEmbeddingPolicy: {
       vectorEmbeddings: []
     }
+    fullTextPolicy: {
+      fullTextPaths: []
+    }
   }
   {
     name: 'cache' // Container for cached messages
@@ -56,7 +59,11 @@ var containers = [
           path: '/*'
         }
       ]
-      //excludedPaths: [{}]
+      excludedPaths: [
+        {
+          path: '/vectors/?'
+        }
+      ]
       vectorIndexes: [
         {
           path: '/vectors'
@@ -73,6 +80,9 @@ var containers = [
           distanceFunction: 'cosine'
         }
       ]
+    }
+    fullTextPolicy: {
+      fullTextPaths: []
     }
   }
   {
@@ -95,6 +105,14 @@ var containers = [
           type: 'diskANN'
         }
       ]
+      fullTextIndexes: [
+        {
+          path: '/tags'
+        }
+        {
+          path: '/description'
+        }
+      ]
     }
     vectorEmbeddingPolicy: {
       vectorEmbeddings: [
@@ -103,6 +121,19 @@ var containers = [
           dataType: 'float32'
           dimensions: 1536
           distanceFunction: 'cosine'
+        }
+      ]
+    }
+    fullTextPolicy: {
+      defaultLanguage: 'en-US'
+      fullTextPaths: [
+        {
+          path: '/tags'
+          language: 'en-US'
+        }
+        {
+          path: '/description'
+          language: 'en-US'
         }
       ]
     }
@@ -117,6 +148,7 @@ module cosmosDbAccount '../core/database/cosmos-db/nosql/account.bicep' = {
     tags: tags
     enableServerless: true
     enableVectorSearch: true
+    enableNoSQLFullTextSearch: true
     disableKeyBasedAuth: true
   }
 }
@@ -143,6 +175,7 @@ module cosmosDbContainers '../core/database/cosmos-db/nosql/container.bicep' = [
       partitionKeyPaths: container.partitionKeyPaths
       indexingPolicy: container.indexingPolicy
       vectorEmbeddingPolicy: container.vectorEmbeddingPolicy
+      fullTextPolicy: container.fullTextPolicy
     }
   }
 ]

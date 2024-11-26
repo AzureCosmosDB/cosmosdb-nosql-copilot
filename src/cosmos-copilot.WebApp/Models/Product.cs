@@ -41,6 +41,11 @@ namespace Cosmos.Copilot.Models
             this.vectors = vectors;
         }
 
+        public override string ToString()
+        {
+            return $"id: {id}, categoryId: {categoryId}, categoryName: {categoryName}, sku: {sku}, name: {name}, description: {description}, price: {price}, tags: {string.Join(", ", tags)}";
+        }
+
     }
     public class Tag
     {

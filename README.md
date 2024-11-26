@@ -17,12 +17,12 @@ name: Build Copilot app using Azure Cosmos DB for NoSQL
 description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
 ---
 
-# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service and Semantic Kernel
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service, Semantic Kernel and .NET Aspire
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot)
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
 
-This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database, full-text and hybrid query capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. It also integrates with .NET Aspire on .NET 8. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
 
 ## Important Security Notice
 
@@ -39,6 +39,7 @@ This application demonstrates the following concepts and how to implement them:
 - Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
 - Using the Semantic Kernel SDK for completion and embeddings generation.
 - Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM.
+- Implementing RAG Pattern using hybrid search (vector and full-text search) in Azure Cosmos DB for NoSQL.
 
 ### Architecture Diagram
 
@@ -54,31 +55,42 @@ This application demonstrates the following concepts and how to implement them:
 
 - Azure subscription.
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
-- Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
 
-  #### Vector search Preview details
+#### Deploying Azure OpenAI supported regions
 
-  This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
+The models used for this sample are **gpt-4o** and **text-3-large**. These models are not deployed in all regions and are not always present in the same region. The regions shown in the main.bicep are the known regions both models are supported in at the time this readme was last updated. To check if these models are available in additional regions, see [Azure OpenAI Service Models](https://learn.microsoft.com/azure/ai-services/openai/concepts/models)
 
-  1. Navigate to your Azure Cosmos DB for NoSQL resource page.
-  1. Select the "Features" pane under the "Settings" menu item.
-  1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
-  1. Read the description to confirm you want to enroll in the preview.
-  1. Select "Enable" to enroll in the Vector Search preview.
+#### Checking Azure OpenAI quota limits
 
-  #### Checking Azure OpenAI quota limits
+For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
-  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+#### Azure Subscription Permission Requirements
 
-  #### Azure Subscription Permission Requirements
+This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
 
-  This solution deploys [user-assigned managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB RBAC permissions to this identity. At a minimum you will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+- [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
+- [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
 
-  - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
-  - [DocumentDB Account Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#documentdb-account-contributor)
+#### Full-Text & Hyrbrid Search Feature
+
+Full-text and hybrid search in Azure Cosmos DB is in Preview and only available to a subset of regions at this time. This feature is commented out in the GetChatCompletionAsync() function in the ChatService. To use this feature you must deploy this sample in either `northcentralus` or `uksouth`.
+
+To utilize this feature during preview, update **main.bicep** in the section below and enter either of the two regions listed above as the value for `location`
+
+```bicep
+module database 'app/database.bicep' = {
+  name: 'database'
+  scope: resourceGroup
+  params: {
+    accountName: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbreviations.cosmosDbAccount}-${resourceToken}'
+    location: 'northcentralus'
+    tags: tags
+  }
+}
+```
 
 ### GitHub Codespaces
 
@@ -150,6 +162,8 @@ A related option is VS Code Dev Containers, which will open the project in your 
    azd up
    ```
 
+1. Follow the prompts for the subscription and select a region to deploy. **NOTE:** If intending to use the Full-Text or Hybrid search feature please see [Full-Text & Hyrbrid Search Feature](#full-text--hyrbrid-search-feature)
+
 ### Setting up local debugging
 
 When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications.
@@ -177,10 +191,10 @@ Please see [Quickstarts](quickstart.md)
 
 1. Open a terminal and navigate to the /infra directory in this solution.
 
-1. Type azd down
+1. Type azd down (--force and --purge ensure the Azure OpenAI models are deleted)
 
    ```bash
-   azd down
+   azd down --force --purge
    ```
 
 ## Guidance
@@ -206,7 +220,7 @@ Average Monthly Cost:
 
 To learn more about the services and features demonstrated in this sample, see the following:
 
-- [Azure Cosmos DB for NoSQL Vector Search announcement](https://aka.ms/CosmosDBDiskANNBlog/)
+- [Azure Cosmos DB for NoSQL Vector Search announcement](https://aka.ms/VectorSearchGaFtsPreview)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Semantic Kernel](https://learn.microsoft.com/semantic-kernel/overview)
 - [Azure App Service documentation](https://learn.microsoft.com/azure/app-service/)
