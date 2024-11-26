@@ -132,7 +132,7 @@ module database 'app/database.bicep' = {
   scope: resourceGroup
   params: {
     accountName: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbreviations.cosmosDbAccount}-${resourceToken}'
-    location: 'northcentralus'
+    location: location
     tags: tags
   }
 }
