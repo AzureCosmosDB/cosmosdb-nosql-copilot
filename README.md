@@ -17,12 +17,12 @@ name: Build Copilot app using Azure Cosmos DB for NoSQL
 description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Semantic Kernel, and .NET Aspire
 ---
 
-# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, Azure App Service, Semantic Kernel and .NET Aspire
+# Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI Service, with Semantic Kernel
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot)
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
 
-This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database, full-text and hybrid query capabilities with Azure OpenAI Service on Azure App Service. This sample shows both using Native SDKs as well as Semantic Kernel integration. It also integrates with .NET Aspire on .NET 8. The sample provides practical guidance on many concepts you will need to design and build these types of applications.
+This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities, including full-text and hybrid search with Azure OpenAI Service using Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications. Note that some features are implemented using Cosmos DB native SDK until Semantic Kernel can support them.
 
 ## Important Security Notice
 
@@ -32,14 +32,12 @@ This template, the application code and configuration it contains, has been buil
 
 This application demonstrates the following concepts and how to implement them:
 
-- How to build a highly scalable, multi-tenant & user, Generative-AI chat application using Azure Cosmos DB for NoSQL.
-- Generating completions and embeddings using Azure OpenAI Service.
+- How to build a highly scalable, multi-tenant & user, RAG Pattern application.
+- Generating embeddings and completions.
 - Managing a context window (chat history) for natural conversational interactions with an LLM.
-- Manage per-request token consumption and payload sizes for Azure OpenAI Service requests.
-- Building a semantic cache using Azure Cosmos DB for NoSQL vector search for improved performance and cost.
-- Using the Semantic Kernel SDK for completion and embeddings generation.
-- Implementing RAG Pattern using vector search in Azure Cosmos DB for NoSQL on custom data to augment generated responses from an LLM.
-- Implementing RAG Pattern using hybrid search (vector and full-text search) in Azure Cosmos DB for NoSQL.
+- Manage per-request token consumption for Azure OpenAI Service requests.
+- Building a semantic cache for improved performance and cost.
+- Implementing full-text and hybrid search using Azure Cosmos DB for NoSQL.
 
 ### Architecture Diagram
 
@@ -201,8 +199,9 @@ Please see [Quickstarts](quickstart.md)
 
 ### Region Availability
 
-This template uses gpt-4o and text-embedding-3-large models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
-  * We recommend using `eastus2', 'eastus', 'japaneast', 'uksouth', 'northeurope', or 'westus3'
+This template uses gpt-4o and text-embedding-3-large models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models) and select a region during deployment accordingly.
+  * We recommend using 'canadaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'norwayeast', 'polandcentral', 'southindia'
+  'swedencentral', 'switzerlandnorth', or 'westus3'
 
 ### Costs
 
