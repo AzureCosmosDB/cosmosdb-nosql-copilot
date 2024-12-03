@@ -45,7 +45,7 @@ Before we implement new functionality in this project, we need to set up authent
 
 To access our Azure resources, we need to be authenticated from our terminal in Visual Studio Code. This application uses authentication with [Microsoft Entra ID](https://learn.microsoft.com/entra/identity/). Role assignments have already been created for your user during resource deployment. If you're already signed in with the user credentials you used for deployment, skip to [Build and run the application for the first time.](#build-and-run-the-application-for-the-first-time)
 
-1. Log in to the Azure CLI by entering the following command in the terminal window.
+1. Log in to the Azure CLI by entering the following command in the terminal window inside of Visual Studio Code.
 
     ```bash
     az login
