@@ -54,20 +54,9 @@ This application demonstrates the following concepts and how to implement them:
 
 - Azure subscription.
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
-- Enroll in the [Azure Cosmos DB for NoSQL Vector Search Preview](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search#enroll-in-the-vector-search-preview-feature) (See below for more details)
 - .NET 8 or above. [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - Visual Studio, VS Code, GitHub Codespaces or another editor to edit or view the source for this sample.
-
-  #### Vector search Preview details
-
-  This lab utilizes a preview feature, **Vector search for Azure Cosmos DB for NoSQL** which requires preview feature registration. Follow the below steps to register. You must be enrolled before you can deploy this solution:
-
-  1. Navigate to your Azure Cosmos DB for NoSQL resource page.
-  1. Select the "Features" pane under the "Settings" menu item.
-  1. Select for “Vector Search in Azure Cosmos DB for NoSQL”.
-  1. Read the description to confirm you want to enroll in the preview.
-  1. Select "Enable" to enroll in the Vector Search preview.
 
   #### Checking Azure OpenAI quota limits
 
@@ -130,10 +119,16 @@ A related option is VS Code Dev Containers, which will open the project in your 
 
 1. Open a terminal and navigate to where you would like to clone this solution
 
-1. Run the following command to download the solution locally to your machine:
+1. Download the solution locally to your machine.
 
+  To download the completed solution:
    ```bash
    azd init -t AzureCosmosDB/cosmosdb-nosql-copilot
+   ```
+
+  To download the starting point for completing the steps in the [lab guide](/lab/lab-guide.md):
+   ```bash
+   azd init -t AzureCosmosDB/cosmosdb-nosql-copilot -b start
    ```
 
 1. From the terminal, navigate to the /infra directory in this solution.

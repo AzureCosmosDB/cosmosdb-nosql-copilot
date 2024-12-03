@@ -6,11 +6,20 @@ In this hands-on lab, we will build serverless, AI RAG applications using .NET A
 
 This lab guides you through the steps to implement generative AI capabilities for an ASP.NET Core Blazor application with Azure Cosmos DB for NoSQL and Azure OpenAI service integration using Semantic Kernel and .NET Aspire. These are the main tasks you will accomplish in this lab.
 
-1. Connect to the application and explore the .NET Aspire dashboard. 
+1. Run the application for the first time. 
 1. Implement Semantic Kernel to coordinate sending user prompts to a Chat GPT model in Azure OpenAI Service and store the responses in Azure Cosmos DB.
 1. Implement and test a chat history feature to allow for more natural conversational interactions. 
 1. Implement RAG Pattern using custom data for augmented LLM responses.
 1. Implement and test a semantic cache for improved performance.
+1. Bonus: Explore the .NET Aspire dashboard. 
+
+## Prepare
+
+You're updating an existing .NET solution that has an ASP.NET Blazor application. This project includes service classes that need to connect to the deployed Azure Cosmos DB and Azure OpenAI resources.
+
+Before moving to the next step, ensure you have completed the [Deployment](../README.md#deployment) as well as the [Setting up local debugging](../README.md#setting-up-local-debugging) sections in the README of this repository.
+
+Once this is complete, you may begin the lab. This lab assumes the use of Visual Studio Code. However, you may use any IDE you wish.
 
 ---
 
@@ -18,10 +27,10 @@ This lab guides you through the steps to implement generative AI capabilities fo
 
 Before we implement new functionality in this project, we need to set up authentication and ensure the existing starter application builds and runs successfully. 
 
-1. Open a local **Terminal** and change the current working directory to where the application has already been downloaded for you.
+1. Open a local **Terminal** and change the current working directory to where you cloned this application.
 
     ```bash
-    cd C:\Users\Admin\Repos\cosmosdb-nosql-copilot\src
+    cd C:\<Path to cloned repo>\src
     ```
 
 1. Open the project in Visual Studio Code with the following command.
@@ -34,47 +43,19 @@ Before we implement new functionality in this project, we need to set up authent
 
 ## Configure authentication
 
-To access our Azure resources, we need to be authenticated from our terminal in Visual Studio Code. Then we need to set up the role assignments required to access Azure OpenAI and Azure Cosmos DB.
+To access our Azure resources, we need to be authenticated from our terminal in Visual Studio Code. This application uses authentication with [Microsoft Entra ID](https://learn.microsoft.com/entra/identity/). Role assignments have already been created for your user during resource deployment. If you're already signed in with the user credentials you used for deployment, skip to [Build and run the application for the first time.](#build-and-run-the-application-for-the-first-time)
 
-1. In the same terminal we just opened, change directories to **infra/scripts**.
-
-    ```bash
-    cd ../infra/scripts
-    ```
-
-1. Log in to the Azure CLI by entering the following command in the terminal window.
+1. Log in to the Azure CLI by entering the following command in the terminal window inside of Visual Studio Code.
 
     ```bash
     az login
     ```
 
-1. You will see a pop-up for choosing which account you want to sign in to. Select **Work or school account** and click **Continue**.
+1. You will see a pop-up for choosing which account you want to sign in to. If you're already signed in with the account you used for resource deployment, you can skip this step. Otherwise, sign in with your account.
 
     ![az-login-1.png](../media/az-login-1.png)
 
-1. You should see a new pop-up asking you to sign in. If you don't see this pop-up, you may need to minimize Visual Studio Code. 
-
-    Enter the **Username** and **Password** provided in the **Resources** tab of this lab environment. Ensure you use the Azure credentials provided, this is different than the username and password used to sign in to the VM. Your username should look something like `azureuser-45536656@LODSPRODMCA.onmicrosoft.com`. 
-
-    ![az-login-2.png](../media/az-login-2.png)
-
-1. After entering your credentials, you should see a page asking you if you want to stay signed in to all your apps. Select **Ok**.
-
-1. Then, you will see another page saying that you're all set. Select **Done**.
-
-1. Finally, after all pop-ups have been cleared, confirm the subscription back in the terminal in Visual Studio Code. There will only be one subscription id listed, enter **1** in the terminal to confirm your subscription.
-
-    ```bash
-    1
-    ```
-
-1. Now that we are authenticated to the Azure CLI, run the script to configure the necessary role assignments for your user. This will allow you to access Azure Cosmos DB and Azure OpenAI using Microsoft Entra ID.
-
-    ```bash
-    ./azd-role-assignments.sh
-    ```
-
-    You should see two output objects. The first is the role assignment for Azure OpenAI and the second is the role assignment for Azure Cosmos DB.
+1. After all sign in pop-ups have been cleared, confirm the subscription back in the terminal in Visual Studio Code. Select the subscription you deployed your Azure resources in.
 
 ## Build and run the application for the first time
 
@@ -83,7 +64,7 @@ Now it's time to make sure the application works as expected. In this step, buil
 1. In the same terminal, change directories to *src/cosmos-copilot.AppHost*. The **AppHost** is the entry point for all .NET Aspire projects and it acts as an orchestrator for all of the dependent projects and services in your application. 
 
     ```bash
-    cd ../../src/cosmos-copilot.AppHost
+    cd cosmos-copilot.AppHost
     ```
 
 1. Before we run the application locally, we need to trust the https developer certificate that .NET will generate for us.
@@ -100,6 +81,7 @@ Now it's time to make sure the application works as expected. In this step, buil
 1. At this point, your app has enough information to run but not enough to generate a real response from an LLM. Let's run the application to make sure your code doesn't have any omissions or errors. You may see some warnings, these are safe to ignore.
 
     ```bash
+    dotnet workload restore
     dotnet run
     ```
 
@@ -107,7 +89,7 @@ Now it's time to make sure the application works as expected. In this step, buil
 
     ![launch-aspire-dashboard.png](../media/launch-aspire-dashboard.png)
 
-    If you get a *Your connection isn't private* message on the web browser, close the browser and `CTRL + click` on the dashboard link again.
+    If you get a *Your connection isn't private* message on the web browser, close all browser windows and `CTRL + click` on the dashboard link again.
 
 1. The .NET Aspire dashboard has pages to manage all project resources, view console output, structured logs, traces for each request, and metrics emitted by various libraries. In the dashboard, launch our chat application by clicking on the `http://localhost:8100` endpoint.
 
