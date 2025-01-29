@@ -30,6 +30,9 @@ var containers = [
           path: '/sessionId/?'
         }
         {
+          path: '/type/?'
+        }
+        {
           path: '/timeStamp/?'
         }
       ]
