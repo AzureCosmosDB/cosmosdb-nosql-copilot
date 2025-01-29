@@ -30,6 +30,9 @@ var containers = [
           path: '/sessionId/?'
         }
         {
+          path: '/type/?'
+        }
+        {
           path: '/timeStamp/?'
         }
       ]
@@ -60,9 +63,7 @@ var containers = [
         }
       ]
       excludedPaths: [
-        {
-          path: '/vectors/?'
-        }
+        
       ]
       vectorIndexes: [
         {
