@@ -141,8 +141,9 @@ public class CosmosDbService
     {
         PartitionKey partitionKey = GetPK(tenantId, userId, string.Empty);
 
-        QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
-            .WithParameter("@type", nameof(Session));
+        QueryDefinition query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.type = @type"
+        ).WithParameter("@type", nameof(Session));
 
         FeedIterator<Session> response = _chatContainer.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
@@ -288,10 +289,20 @@ public class CosmosDbService
 
         PartitionKey partitionKey = GetPK(tenantId, userId, sessionId);
 
-        await _chatContainer.DeleteAllItemsByPartitionKeyStreamAsync(partitionKey);
+        //This only works if Delete By Partition key feature is enabled on the account
+        //await _chatContainer.DeleteAllItemsByPartitionKeyStreamAsync(partitionKey);
 
+        //This is a workaround to delete all items in a partition without this feature above
+        List<Message> messages = await GetSessionMessagesAsync(tenantId, userId, sessionId);
+
+        foreach (var message in messages)
+        {
+            await _chatContainer.DeleteItemAsync<Message>(
+                partitionKey: partitionKey,
+                id: message.Id
+            );
+        }
     }
-
 
     /// <summary>
     /// Perform a vector search to find an item in the cache collection
