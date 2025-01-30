@@ -193,7 +193,7 @@ As an example in US dollars, here's how the sample is currently built:
 
 Average Daily Cost:
 * Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): $0.25
-* Azure App Service (B3 Plan): $7.20
+* Azure App Service (B3 Plan): $1.20
 * Azure OpenAI (GPT-4o 1M input/output tokens): $20 (Sample uses 10K tokens)
 * Azure OpenAI (text-3-large): < $0.01 (Sample uses 5K tokens)
 
