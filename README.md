@@ -21,6 +21,7 @@ description: Build a Copilot app using Azure Cosmos DB for NoSQL, Azure OpenAI S
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/cosmosdb-nosql-copilot)
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
+[![Open in Codeanywhere](https://img.shields.io/badge/Open%20in-Codeanywhere-blue?style=flat-square&logo=codeanywhere)](https://app.codeanywhere.com/#https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot)
 
 This sample application shows how to build a multi-tenant, multi-user, Generative-AI RAG Pattern application using Azure Cosmos DB for NoSQL with its new vector database capabilities, including full-text and hybrid search with Azure OpenAI Service using Semantic Kernel. The sample provides practical guidance on many concepts you will need to design and build these types of applications. Note that some features are implemented using Cosmos DB native SDK until Semantic Kernel can support them.
 
