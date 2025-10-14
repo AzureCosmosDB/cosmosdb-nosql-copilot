@@ -402,3 +402,7 @@ FodyWeavers.xsd
 appsettings.Development.json
 src/cosmos-copilot.WebApp/Properties/ServiceDependencies/local/*
 serviceDependencies.local.json
+
+# Bicep compiled files
+infra/**/*.json
+!infra/**/main.parameters.json
