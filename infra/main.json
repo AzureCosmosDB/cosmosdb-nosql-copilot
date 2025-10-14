@@ -1,0 +1,2447 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.37.4.10188",
+      "templateHash": "80751862428064179"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "metadata": {
+        "description": "Name of the environment that can be used as part of naming resource convention."
+      }
+    },
+    "location": {
+      "type": "string",
+      "allowedValues": [
+        "canadaeast",
+        "eastus",
+        "eastus2",
+        "francecentral",
+        "japaneast",
+        "norwayeast",
+        "polandcentral",
+        "southindia",
+        "swedencentral",
+        "switzerlandnorth",
+        "westus3"
+      ],
+      "minLength": 1,
+      "metadata": {
+        "description": "Primary location for all resources."
+      }
+    },
+    "principalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Id of the principal to assign database and application roles."
+      }
+    },
+    "openAiAccountName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "cosmosDbAccountName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "userAssignedIdentityName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "appServiceWebAppName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "serviceName": {
+      "type": "string",
+      "defaultValue": "web"
+    }
+  },
+  "variables": {
+    "$fxv#0": {
+      "cosmosDbAccount": "cosmos",
+      "openAiAccount": "openai",
+      "userAssignedIdentity": "ua-id",
+      "appServiceWebApp": "web",
+      "appServicePlan": "plan"
+    },
+    "abbreviations": "[variables('$fxv#0')]",
+    "resourceToken": "[toLower(uniqueString(subscription().id, parameters('environmentName'), parameters('location')))]",
+    "tags": {
+      "azd-env-name": "[parameters('environmentName')]",
+      "repo": "https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot"
+    },
+    "chatSettings": {
+      "maxContextWindow": "3",
+      "cacheSimilarityScore": "0.95",
+      "productMaxResults": "10"
+    },
+    "openAiSettings": {
+      "completionModelName": "gpt-4o",
+      "completionDeploymentName": "gpt-4o",
+      "embeddingModelName": "text-embedding-3-large",
+      "embeddingDeploymentName": "text-embedding-3-large",
+      "maxRagTokens": "1500",
+      "maxContextTokens": "500"
+    },
+    "productDataSourceUri": "https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json",
+    "principalType": "User"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('environmentName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "identity",
+      "resourceGroup": "[parameters('environmentName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "identityName": "[if(not(empty(parameters('userAssignedIdentityName'))), createObject('value', parameters('userAssignedIdentityName')), createObject('value', format('{0}-{1}', variables('abbreviations').userAssignedIdentity, variables('resourceToken'))))]",
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "16311287635149648862"
+            },
+            "description": "Create identity resources."
+          },
+          "parameters": {
+            "identityName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "user-assigned-identity",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('identityName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "16492979987912683118"
+                    },
+                    "description": "Creates a Microsoft Entra user-assigned identity."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                      "apiVersion": "2023-01-31",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]"
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name'))]"
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name')), '2023-01-31').principalId]"
+                    },
+                    "clientId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name')), '2023-01-31').clientId]"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name')), '2023-01-31').tenantId]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'user-assigned-identity'), '2022-09-01').outputs.name.value]"
+            },
+            "resourceId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'user-assigned-identity'), '2022-09-01').outputs.resourceId.value]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'user-assigned-identity'), '2022-09-01').outputs.principalId.value]"
+            },
+            "clientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'user-assigned-identity'), '2022-09-01').outputs.clientId.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('environmentName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "ai",
+      "resourceGroup": "[parameters('environmentName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "accountName": "[if(not(empty(parameters('openAiAccountName'))), createObject('value', parameters('openAiAccountName')), createObject('value', format('{0}-{1}', variables('abbreviations').openAiAccount, variables('resourceToken'))))]",
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "completionModelName": {
+            "value": "[variables('openAiSettings').completionModelName]"
+          },
+          "completionsDeploymentName": {
+            "value": "[variables('openAiSettings').completionDeploymentName]"
+          },
+          "embeddingsModelName": {
+            "value": "[variables('openAiSettings').embeddingModelName]"
+          },
+          "embeddingsDeploymentName": {
+            "value": "[variables('openAiSettings').embeddingDeploymentName]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "11810754543656304668"
+            },
+            "description": "Create AI accounts."
+          },
+          "parameters": {
+            "accountName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "completionModelName": {
+              "type": "securestring"
+            },
+            "completionsDeploymentName": {
+              "type": "string"
+            },
+            "embeddingsModelName": {
+              "type": "string"
+            },
+            "embeddingsDeploymentName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "deployments": [
+              {
+                "name": "[parameters('completionsDeploymentName')]",
+                "skuCapacity": 10,
+                "modelName": "[parameters('completionModelName')]",
+                "modelVersion": "2024-05-13"
+              },
+              {
+                "name": "[parameters('embeddingsDeploymentName')]",
+                "skuCapacity": 5,
+                "modelName": "[parameters('embeddingsModelName')]",
+                "modelVersion": "1"
+              }
+            ]
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "openai-account",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('accountName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "kind": {
+                    "value": "OpenAI"
+                  },
+                  "sku": {
+                    "value": "S0"
+                  },
+                  "enablePublicNetworkAccess": {
+                    "value": true
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "9584201037979146523"
+                    },
+                    "description": "Creates an Azure Cognitive Services account."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "kind": {
+                      "type": "string",
+                      "allowedValues": [
+                        "OpenAI",
+                        "ComputerVision",
+                        "TextTranslation",
+                        "CognitiveServices"
+                      ],
+                      "metadata": {
+                        "description": "Sets the kind of account."
+                      }
+                    },
+                    "sku": {
+                      "type": "string",
+                      "defaultValue": "S0",
+                      "allowedValues": [
+                        "S0"
+                      ],
+                      "metadata": {
+                        "description": "SKU for the account. Defaults to \"S0\"."
+                      }
+                    },
+                    "enablePublicNetworkAccess": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Enables access from public networks. Defaults to true."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.CognitiveServices/accounts",
+                      "apiVersion": "2023-05-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "kind": "[parameters('kind')]",
+                      "sku": {
+                        "name": "[parameters('sku')]"
+                      },
+                      "properties": {
+                        "customSubDomainName": "[parameters('name')]",
+                        "publicNetworkAccess": "[if(parameters('enablePublicNetworkAccess'), 'Enabled', 'Disabled')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "endpoint": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
+                    },
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "copy": {
+                "name": "openAiModelDeployments",
+                "count": "[length(variables('deployments'))]",
+                "mode": "serial",
+                "batchSize": 1
+              },
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[format('openai-model-deployment-{0}', variables('deployments')[copyIndex()].name)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[variables('deployments')[copyIndex()].name]"
+                  },
+                  "parentAccountName": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-account'), '2022-09-01').outputs.name.value]"
+                  },
+                  "skuName": {
+                    "value": "Standard"
+                  },
+                  "skuCapacity": {
+                    "value": "[variables('deployments')[copyIndex()].skuCapacity]"
+                  },
+                  "modelName": {
+                    "value": "[variables('deployments')[copyIndex()].modelName]"
+                  },
+                  "modelVersion": {
+                    "value": "[variables('deployments')[copyIndex()].modelVersion]"
+                  },
+                  "modelFormat": {
+                    "value": "OpenAI"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "14791540187679037020"
+                    },
+                    "description": "Creates an Azure Cognitive Services deployment."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "parentAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent Azure Cognitive Services account."
+                      }
+                    },
+                    "skuName": {
+                      "type": "string",
+                      "defaultValue": "Standard",
+                      "metadata": {
+                        "description": "Name of the SKU for the deployment. Defaults to \"Standard\"."
+                      }
+                    },
+                    "skuCapacity": {
+                      "type": "int",
+                      "defaultValue": 100,
+                      "metadata": {
+                        "description": "Capacity of the SKU for the deployment. Defaults to 100."
+                      }
+                    },
+                    "modelName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the model to use in the deployment."
+                      }
+                    },
+                    "modelFormat": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Format of the model to use in the deployment."
+                      }
+                    },
+                    "modelVersion": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Version of the model to use in the deployment."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.CognitiveServices/accounts/deployments",
+                      "apiVersion": "2023-05-01",
+                      "name": "[format('{0}/{1}', parameters('parentAccountName'), parameters('name'))]",
+                      "sku": {
+                        "name": "[parameters('skuName')]",
+                        "capacity": "[parameters('skuCapacity')]"
+                      },
+                      "properties": {
+                        "model": {
+                          "name": "[parameters('modelName')]",
+                          "format": "[parameters('modelFormat')]",
+                          "version": "[parameters('modelVersion')]"
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'openai-account')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-account'), '2022-09-01').outputs.name.value]"
+            },
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'openai-account'), '2022-09-01').outputs.endpoint.value]"
+            },
+            "deployments": {
+              "type": "array",
+              "copy": {
+                "count": "[length(variables('deployments'))]",
+                "input": {
+                  "name": "[reference(resourceId('Microsoft.Resources/deployments', format('openai-model-deployment-{0}', variables('deployments')[copyIndex()].name)), '2022-09-01').outputs.name.value]"
+                }
+              }
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('environmentName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "web",
+      "resourceGroup": "[parameters('environmentName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": "[if(not(empty(parameters('appServiceWebAppName'))), createObject('value', parameters('appServiceWebAppName')), createObject('value', format('{0}-{1}', variables('abbreviations').appServiceWebApp, variables('resourceToken'))))]",
+          "planName": "[if(not(empty(parameters('appServicePlanName'))), createObject('value', parameters('appServicePlanName')), createObject('value', format('{0}-{1}', variables('abbreviations').appServicePlan, variables('resourceToken'))))]",
+          "databaseAccountEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.endpoint.value]"
+          },
+          "openAiAccountEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.endpoint.value]"
+          },
+          "cosmosDbSettings": {
+            "value": {
+              "database": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.database.value.name]",
+              "chatContainer": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[0].name]",
+              "cacheContainer": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[1].name]",
+              "productContainer": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[2].name]",
+              "productDataSourceUri": "[variables('productDataSourceUri')]"
+            }
+          },
+          "openAiSettings": {
+            "value": {
+              "completionDeploymentName": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.deployments.value[0].name]",
+              "embeddingDeploymentName": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.deployments.value[1].name]",
+              "maxRagTokens": "[variables('openAiSettings').maxRagTokens]",
+              "maxContextTokens": "[variables('openAiSettings').maxContextTokens]"
+            }
+          },
+          "chatSettings": {
+            "value": {
+              "maxContextWindow": "[variables('chatSettings').maxContextWindow]",
+              "cacheSimilarityScore": "[variables('chatSettings').cacheSimilarityScore]",
+              "productMaxResults": "[variables('chatSettings').productMaxResults]"
+            }
+          },
+          "userAssignedManagedIdentity": {
+            "value": {
+              "resourceId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'identity'), '2022-09-01').outputs.resourceId.value]",
+              "clientId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'identity'), '2022-09-01').outputs.clientId.value]"
+            }
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "serviceTag": {
+            "value": "[parameters('serviceName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "5154121218480860257"
+            },
+            "description": "Create web apps."
+          },
+          "definitions": {
+            "openAiOptions": {
+              "type": "object",
+              "properties": {
+                "completionDeploymentName": {
+                  "type": "string"
+                },
+                "embeddingDeploymentName": {
+                  "type": "string"
+                },
+                "maxRagTokens": {
+                  "type": "string"
+                },
+                "maxContextTokens": {
+                  "type": "string"
+                }
+              }
+            },
+            "cosmosDbOptions": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "string"
+                },
+                "chatContainer": {
+                  "type": "string"
+                },
+                "cacheContainer": {
+                  "type": "string"
+                },
+                "productContainer": {
+                  "type": "string"
+                },
+                "productDataSourceUri": {
+                  "type": "string"
+                }
+              }
+            },
+            "chatOptions": {
+              "type": "object",
+              "properties": {
+                "maxContextWindow": {
+                  "type": "string"
+                },
+                "cacheSimilarityScore": {
+                  "type": "string"
+                },
+                "productMaxResults": {
+                  "type": "string"
+                }
+              }
+            },
+            "managedIdentity": {
+              "type": "object",
+              "properties": {
+                "resourceId": {
+                  "type": "string"
+                },
+                "clientId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "parameters": {
+            "planName": {
+              "type": "string"
+            },
+            "appName": {
+              "type": "string"
+            },
+            "serviceTag": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "B1",
+              "metadata": {
+                "description": "SKU of the App Service Plan."
+              }
+            },
+            "databaseAccountEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Endpoint for Azure Cosmos DB for NoSQL account."
+              }
+            },
+            "openAiAccountEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Endpoint for Azure OpenAI account."
+              }
+            },
+            "openAiSettings": {
+              "$ref": "#/definitions/openAiOptions",
+              "metadata": {
+                "description": "Application configuration settings for OpenAI."
+              }
+            },
+            "cosmosDbSettings": {
+              "$ref": "#/definitions/cosmosDbOptions",
+              "metadata": {
+                "description": "Application configuration settings for Azure Cosmos DB."
+              }
+            },
+            "chatSettings": {
+              "$ref": "#/definitions/chatOptions",
+              "metadata": {
+                "description": "Application configuration settings for Chat Service."
+              }
+            },
+            "userAssignedManagedIdentity": {
+              "$ref": "#/definitions/managedIdentity",
+              "metadata": {
+                "description": "Unique identifier for user-assigned managed identity."
+              }
+            }
+          },
+          "resources": {
+            "appServicePlan": {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "app-service-plan",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('planName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "sku": {
+                    "value": "[parameters('sku')]"
+                  },
+                  "kind": {
+                    "value": "linux"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "384993723059929209"
+                    },
+                    "description": "Creates an Azure App Service plan."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "kind": {
+                      "type": "string",
+                      "defaultValue": "linux",
+                      "allowedValues": [
+                        "linux"
+                      ],
+                      "metadata": {
+                        "description": "OS type of the plan. Defaults to \"linux\"."
+                      }
+                    },
+                    "sku": {
+                      "type": "string",
+                      "defaultValue": "F1",
+                      "metadata": {
+                        "description": "SKU for the plan. Defaults to \"F1\"."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Web/serverfarms",
+                      "apiVersion": "2022-09-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "sku": {
+                        "name": "[parameters('sku')]"
+                      },
+                      "kind": "[parameters('kind')]",
+                      "properties": {
+                        "reserved": "[if(equals(parameters('kind'), 'linux'), true(), null())]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    }
+                  }
+                }
+              }
+            },
+            "appServiceWebApp": {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "app-service-web-app",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('appName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[union(parameters('tags'), createObject('azd-service-name', parameters('serviceTag')))]"
+                  },
+                  "parentPlanName": {
+                    "value": "[reference('appServicePlan').outputs.name.value]"
+                  },
+                  "runtimeName": {
+                    "value": "dotnetcore"
+                  },
+                  "runtimeVersion": {
+                    "value": "8.0"
+                  },
+                  "kind": {
+                    "value": "app,linux"
+                  },
+                  "enableSystemAssignedManagedIdentity": {
+                    "value": false
+                  },
+                  "userAssignedManagedIdentityIds": {
+                    "value": [
+                      "[parameters('userAssignedManagedIdentity').resourceId]"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "12716622403662898443"
+                    },
+                    "description": "Creates an Azure App Service site."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "parentPlanName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent plan for the site."
+                      }
+                    },
+                    "runtimeName": {
+                      "type": "string",
+                      "allowedValues": [
+                        "dotnet",
+                        "dotnetcore",
+                        "dotnet-isolated",
+                        "node",
+                        "python",
+                        "java",
+                        "powershell",
+                        "custom"
+                      ],
+                      "metadata": {
+                        "description": "Runtime to use for the site."
+                      }
+                    },
+                    "runtimeVersion": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Version of the runtime to use for the site."
+                      }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "defaultValue": "app,linux",
+                      "metadata": {
+                        "description": "The OS kind of the site. Defaults to \"app, linux\""
+                      }
+                    },
+                    "alwaysOn": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "If the site should be always on. Defaults to true."
+                      }
+                    },
+                    "allowedCorsOrigins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Allowed origins for client-side CORS request on the site."
+                      }
+                    },
+                    "enableSystemAssignedManagedIdentity": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enable system-assigned managed identity. Defaults to false."
+                      }
+                    },
+                    "userAssignedManagedIdentityIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "List of user-assigned managed identities. Defaults to an empty array."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "linuxFxVersion": "[format('{0}|{1}', parameters('runtimeName'), parameters('runtimeVersion'))]"
+                  },
+                  "resources": {
+                    "plan": {
+                      "existing": true,
+                      "type": "Microsoft.Web/serverfarms",
+                      "apiVersion": "2022-09-01",
+                      "name": "[parameters('parentPlanName')]"
+                    },
+                    "site": {
+                      "type": "Microsoft.Web/sites",
+                      "apiVersion": "2022-09-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "kind": "[parameters('kind')]",
+                      "identity": {
+                        "type": "[if(parameters('enableSystemAssignedManagedIdentity'), if(not(empty(parameters('userAssignedManagedIdentityIds'))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(parameters('userAssignedManagedIdentityIds'))), 'UserAssigned', 'None'))]",
+                        "userAssignedIdentities": "[if(not(empty(parameters('userAssignedManagedIdentityIds'))), toObject(parameters('userAssignedManagedIdentityIds'), lambda('uaid', lambdaVariables('uaid')), lambda('uaid', createObject())), null())]"
+                      },
+                      "properties": {
+                        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('parentPlanName'))]",
+                        "siteConfig": {
+                          "linuxFxVersion": "[variables('linuxFxVersion')]",
+                          "alwaysOn": "[parameters('alwaysOn')]",
+                          "http20Enabled": true,
+                          "minTlsVersion": "1.2",
+                          "cors": {
+                            "allowedOrigins": "[union(createArray('https://portal.azure.com', 'https://ms.portal.azure.com'), parameters('allowedCorsOrigins'))]"
+                          }
+                        },
+                        "httpsOnly": true
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "endpoint": {
+                      "type": "string",
+                      "value": "[format('https://{0}', reference('site').defaultHostName)]"
+                    },
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    },
+                    "managedIdentityPrincipalId": {
+                      "type": "string",
+                      "value": "[if(parameters('enableSystemAssignedManagedIdentity'), reference('site', '2022-09-01', 'full').identity.principalId, '')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "appServicePlan"
+              ]
+            },
+            "appServiceWebAppConfig": {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "app-service-config",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "parentSiteName": {
+                    "value": "[reference('appServiceWebApp').outputs.name.value]"
+                  },
+                  "appSettings": {
+                    "value": {
+                      "OPENAI__ENDPOINT": "[parameters('openAiAccountEndpoint')]",
+                      "OPENAI__COMPLETIONDEPLOYMENTNAME": "[parameters('openAiSettings').completionDeploymentName]",
+                      "OPENAI__EMBEDDINGDEPLOYMENTNAME": "[parameters('openAiSettings').embeddingDeploymentName]",
+                      "OPENAI__MAXRAGTOKENS": "[parameters('openAiSettings').maxRagTokens]",
+                      "OPENAI__MAXCONTEXTTOKENS": "[parameters('openAiSettings').maxContextTokens]",
+                      "COSMOSDB__ENDPOINT": "[parameters('databaseAccountEndpoint')]",
+                      "COSMOSDB__DATABASE": "[parameters('cosmosDbSettings').database]",
+                      "COSMOSDB__CHATCONTAINER": "[parameters('cosmosDbSettings').chatContainer]",
+                      "COSMOSDB__CACHECONTAINER": "[parameters('cosmosDbSettings').cacheContainer]",
+                      "COSMOSDB__PRODUCTCONTAINER": "[parameters('cosmosDbSettings').productContainer]",
+                      "COSMOSDB__PRODUCTDATASOURCEURI": "[parameters('cosmosDbSettings').productDataSourceUri]",
+                      "CHAT__MAXCONTEXTWINDOW": "[parameters('chatSettings').maxContextWindow]",
+                      "CHAT__CACHESIMILARITYSCORE": "[parameters('chatSettings').cacheSimilarityScore]",
+                      "CHAT__PRODUCTMAXRESULTS": "[parameters('chatSettings').productMaxResults]",
+                      "AZURE_CLIENT_ID": "[parameters('userAssignedManagedIdentity').clientId]"
+                    }
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "6525005359008220569"
+                    },
+                    "description": "Creates an Azure App Service configuration for a site."
+                  },
+                  "parameters": {
+                    "parentSiteName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent App Service site for the configuration."
+                      }
+                    },
+                    "appSettings": {
+                      "type": "secureObject",
+                      "defaultValue": {}
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Web/sites/config",
+                      "apiVersion": "2022-09-01",
+                      "name": "[format('{0}/{1}', parameters('parentSiteName'), 'appsettings')]",
+                      "kind": "string",
+                      "properties": "[parameters('appSettings')]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "appServiceWebApp"
+              ]
+            }
+          },
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[reference('appServiceWebApp').outputs.name.value]"
+            },
+            "endpoint": {
+              "type": "string",
+              "value": "[reference('appServiceWebApp').outputs.endpoint.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('environmentName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "database",
+      "resourceGroup": "[parameters('environmentName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "accountName": "[if(not(empty(parameters('cosmosDbAccountName'))), createObject('value', parameters('cosmosDbAccountName')), createObject('value', format('{0}-{1}', variables('abbreviations').cosmosDbAccount, variables('resourceToken'))))]",
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "17613961867220149901"
+            },
+            "description": "Create database accounts."
+          },
+          "parameters": {
+            "accountName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "variables": {
+            "database": {
+              "name": "cosmoscopilotdb"
+            },
+            "containers": [
+              {
+                "name": "chat",
+                "partitionKeyPaths": [
+                  "/tenantId",
+                  "/userId",
+                  "/sessionId"
+                ],
+                "indexingPolicy": {
+                  "automatic": true,
+                  "indexingMode": "consistent",
+                  "includedPaths": [
+                    {
+                      "path": "/tenantId/?"
+                    },
+                    {
+                      "path": "/userId/?"
+                    },
+                    {
+                      "path": "/sessionId/?"
+                    },
+                    {
+                      "path": "/type/?"
+                    },
+                    {
+                      "path": "/timeStamp/?"
+                    }
+                  ],
+                  "excludedPaths": [
+                    {
+                      "path": "/*"
+                    }
+                  ]
+                },
+                "vectorEmbeddingPolicy": {
+                  "vectorEmbeddings": []
+                },
+                "fullTextPolicy": {
+                  "fullTextPaths": []
+                }
+              },
+              {
+                "name": "cache",
+                "partitionKeyPaths": [
+                  "/id"
+                ],
+                "indexingPolicy": {
+                  "automatic": true,
+                  "indexingMode": "consistent",
+                  "includedPaths": [
+                    {
+                      "path": "/*"
+                    }
+                  ],
+                  "excludedPaths": [],
+                  "vectorIndexes": [
+                    {
+                      "path": "/vectors",
+                      "type": "diskANN"
+                    }
+                  ]
+                },
+                "vectorEmbeddingPolicy": {
+                  "vectorEmbeddings": [
+                    {
+                      "path": "/vectors",
+                      "dataType": "float32",
+                      "dimensions": 1536,
+                      "distanceFunction": "cosine"
+                    }
+                  ]
+                },
+                "fullTextPolicy": {
+                  "fullTextPaths": []
+                }
+              },
+              {
+                "name": "products",
+                "partitionKeyPaths": [
+                  "/categoryId"
+                ],
+                "indexingPolicy": {
+                  "automatic": true,
+                  "indexingMode": "consistent",
+                  "includedPaths": [
+                    {
+                      "path": "/*"
+                    }
+                  ],
+                  "vectorIndexes": [
+                    {
+                      "path": "/vectors",
+                      "type": "diskANN"
+                    }
+                  ],
+                  "fullTextIndexes": [
+                    {
+                      "path": "/tags"
+                    },
+                    {
+                      "path": "/description"
+                    }
+                  ]
+                },
+                "vectorEmbeddingPolicy": {
+                  "vectorEmbeddings": [
+                    {
+                      "path": "/vectors",
+                      "dataType": "float32",
+                      "dimensions": 1536,
+                      "distanceFunction": "cosine"
+                    }
+                  ]
+                },
+                "fullTextPolicy": {
+                  "defaultLanguage": "en-US",
+                  "fullTextPaths": [
+                    {
+                      "path": "/tags",
+                      "language": "en-US"
+                    },
+                    {
+                      "path": "/description",
+                      "language": "en-US"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "cosmos-db-account",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('accountName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "enableServerless": {
+                    "value": true
+                  },
+                  "enableVectorSearch": {
+                    "value": true
+                  },
+                  "enableNoSQLFullTextSearch": {
+                    "value": true
+                  },
+                  "disableKeyBasedAuth": {
+                    "value": true
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "3504860671656729102"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL account."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "enableServerless": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables serverless for this account. Defaults to false."
+                      }
+                    },
+                    "disableKeyBasedAuth": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Disables key-based authentication. Defaults to false."
+                      }
+                    },
+                    "enableVectorSearch": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables vector search for this account. Defaults to false."
+                      }
+                    },
+                    "enableNoSQLFullTextSearch": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables NoSQL full text search for this account. Defaults to false."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2022-09-01",
+                      "name": "cosmos-db-nosql-account",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "location": {
+                            "value": "[parameters('location')]"
+                          },
+                          "tags": {
+                            "value": "[parameters('tags')]"
+                          },
+                          "kind": {
+                            "value": "GlobalDocumentDB"
+                          },
+                          "enableServerless": {
+                            "value": "[parameters('enableServerless')]"
+                          },
+                          "enableNoSQLVectorSearch": {
+                            "value": "[parameters('enableVectorSearch')]"
+                          },
+                          "enableNoSQLFullTextSearch": {
+                            "value": "[parameters('enableNoSQLFullTextSearch')]"
+                          },
+                          "disableKeyBasedAuth": {
+                            "value": "[parameters('disableKeyBasedAuth')]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.37.4.10188",
+                              "templateHash": "6943523465433929076"
+                            },
+                            "description": "Create an Azure Cosmos DB account."
+                          },
+                          "parameters": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "location": {
+                              "type": "string",
+                              "defaultValue": "[resourceGroup().location]"
+                            },
+                            "tags": {
+                              "type": "object",
+                              "defaultValue": {}
+                            },
+                            "kind": {
+                              "type": "string",
+                              "defaultValue": "GlobalDocumentDB",
+                              "allowedValues": [
+                                "GlobalDocumentDB"
+                              ],
+                              "metadata": {
+                                "description": "Sets the kind of account."
+                              }
+                            },
+                            "enableServerless": {
+                              "type": "bool",
+                              "defaultValue": true,
+                              "metadata": {
+                                "description": "Enables serverless for this account. Defaults to false."
+                              }
+                            },
+                            "enableNoSQLVectorSearch": {
+                              "type": "bool",
+                              "defaultValue": false,
+                              "metadata": {
+                                "description": "Enables NoSQL vector search for this account. Defaults to false."
+                              }
+                            },
+                            "enableNoSQLFullTextSearch": {
+                              "type": "bool",
+                              "defaultValue": false,
+                              "metadata": {
+                                "description": "Enables NoSQL full text search for this account. Defaults to false."
+                              }
+                            },
+                            "disableKeyBasedAuth": {
+                              "type": "bool",
+                              "defaultValue": false,
+                              "metadata": {
+                                "description": "Disables key-based authentication. Defaults to false."
+                              }
+                            }
+                          },
+                          "resources": [
+                            {
+                              "type": "Microsoft.DocumentDB/databaseAccounts",
+                              "apiVersion": "2024-05-15",
+                              "name": "[parameters('name')]",
+                              "location": "[parameters('location')]",
+                              "tags": "[parameters('tags')]",
+                              "kind": "[parameters('kind')]",
+                              "properties": {
+                                "consistencyPolicy": {
+                                  "defaultConsistencyLevel": "Session"
+                                },
+                                "databaseAccountOfferType": "Standard",
+                                "locations": [
+                                  {
+                                    "locationName": "[parameters('location')]",
+                                    "failoverPriority": 0,
+                                    "isZoneRedundant": false
+                                  }
+                                ],
+                                "enableAutomaticFailover": false,
+                                "enableMultipleWriteLocations": false,
+                                "disableLocalAuth": "[parameters('disableKeyBasedAuth')]",
+                                "capabilities": "[union(if(parameters('enableServerless'), createArray(createObject('name', 'EnableServerless')), createArray()), if(parameters('enableNoSQLVectorSearch'), createArray(createObject('name', 'EnableNoSQLVectorSearch')), createArray()), if(parameters('enableNoSQLFullTextSearch'), createArray(createObject('name', 'EnableNoSQLFullTextSearch')), createArray()))]"
+                              }
+                            }
+                          ],
+                          "outputs": {
+                            "endpoint": {
+                              "type": "string",
+                              "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('name')), '2024-05-15').documentEndpoint]"
+                            },
+                            "name": {
+                              "type": "string",
+                              "value": "[parameters('name')]"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "endpoint": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-nosql-account'), '2022-09-01').outputs.endpoint.value]"
+                    },
+                    "name": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-nosql-account'), '2022-09-01').outputs.name.value]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[format('cosmos-db-database-{0}', variables('database').name)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[variables('database').name]"
+                  },
+                  "parentAccountName": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-account'), '2022-09-01').outputs.name.value]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "setThroughput": {
+                    "value": false
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "6244058004738035037"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL database."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "parentAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent Azure Cosmos DB account."
+                      }
+                    },
+                    "setThroughput": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables throughput setting at this resource level. Defaults to false."
+                      }
+                    },
+                    "autoscale": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables autoscale. If setThroughput is enabled, defaults to false."
+                      }
+                    },
+                    "throughput": {
+                      "type": "int",
+                      "defaultValue": 400,
+                      "metadata": {
+                        "description": "The amount of throughput set. If setThroughput is enabled, defaults to 400."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "options": "[if(parameters('setThroughput'), if(parameters('autoscale'), createObject('autoscaleSettings', createObject('maxThroughput', parameters('throughput'))), createObject('throughput', parameters('throughput'))), createObject())]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+                      "apiVersion": "2024-05-15",
+                      "name": "[format('{0}/{1}', parameters('parentAccountName'), parameters('name'))]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "options": "[variables('options')]",
+                        "resource": {
+                          "id": "[parameters('name')]"
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'cosmos-db-account')]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "cosmosDbContainers",
+                "count": "[length(variables('containers'))]"
+              },
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[format('cosmos-db-container-{0}', variables('containers')[copyIndex()].name)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[variables('containers')[copyIndex()].name]"
+                  },
+                  "parentAccountName": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-account'), '2022-09-01').outputs.name.value]"
+                  },
+                  "parentDatabaseName": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('cosmos-db-database-{0}', variables('database').name)), '2022-09-01').outputs.name.value]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "setThroughput": {
+                    "value": false
+                  },
+                  "partitionKeyPaths": {
+                    "value": "[variables('containers')[copyIndex()].partitionKeyPaths]"
+                  },
+                  "indexingPolicy": {
+                    "value": "[variables('containers')[copyIndex()].indexingPolicy]"
+                  },
+                  "vectorEmbeddingPolicy": {
+                    "value": "[variables('containers')[copyIndex()].vectorEmbeddingPolicy]"
+                  },
+                  "fullTextPolicy": {
+                    "value": "[variables('containers')[copyIndex()].fullTextPolicy]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "18105654491858672415"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL container."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "parentAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent Azure Cosmos DB account."
+                      }
+                    },
+                    "parentDatabaseName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent Azure Cosmos DB database."
+                      }
+                    },
+                    "setThroughput": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables throughput setting at this resource level. Defaults to true."
+                      }
+                    },
+                    "autoscale": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Enables autoscale. If setThroughput is enabled, defaults to false."
+                      }
+                    },
+                    "throughput": {
+                      "type": "int",
+                      "defaultValue": 400,
+                      "metadata": {
+                        "description": "The amount of throughput set. If setThroughput is enabled, defaults to 400."
+                      }
+                    },
+                    "partitionKeyPaths": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [
+                        "/id"
+                      ],
+                      "metadata": {
+                        "description": "List of hierarhical partition key paths. Defaults to an array that only contains /id."
+                      }
+                    },
+                    "indexingPolicy": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Optional custom indexing policy for the container."
+                      }
+                    },
+                    "vectorEmbeddingPolicy": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Optional vector embedding policy for the container."
+                      }
+                    },
+                    "fullTextPolicy": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Optional full text policy for the container."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "options": "[if(parameters('setThroughput'), if(parameters('autoscale'), createObject('autoscaleSettings', createObject('maxThroughput', parameters('throughput'))), createObject('throughput', parameters('throughput'))), createObject())]"
+                  },
+                  "resources": {
+                    "account": {
+                      "existing": true,
+                      "type": "Microsoft.DocumentDB/databaseAccounts",
+                      "apiVersion": "2024-05-15",
+                      "name": "[parameters('parentAccountName')]"
+                    },
+                    "database": {
+                      "existing": true,
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+                      "apiVersion": "2024-05-15",
+                      "name": "[format('{0}/{1}', parameters('parentAccountName'), parameters('parentDatabaseName'))]"
+                    },
+                    "container": {
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+                      "apiVersion": "2024-05-15",
+                      "name": "[format('{0}/{1}/{2}', parameters('parentAccountName'), parameters('parentDatabaseName'), parameters('name'))]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "options": "[variables('options')]",
+                        "resource": "[union(createObject('id', parameters('name'), 'partitionKey', createObject('paths', parameters('partitionKeyPaths'), 'kind', 'MultiHash', 'version', 2)), if(not(empty(parameters('indexingPolicy'))), createObject('indexingPolicy', parameters('indexingPolicy')), createObject()), if(not(empty(parameters('vectorEmbeddingPolicy'))), createObject('vectorEmbeddingPolicy', parameters('vectorEmbeddingPolicy')), createObject()), if(not(empty(parameters('fullTextPolicy'))), createObject('fullTextPolicy', parameters('fullTextPolicy')), createObject()))]"
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'cosmos-db-account')]",
+                "[resourceId('Microsoft.Resources/deployments', format('cosmos-db-database-{0}', variables('database').name))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-account'), '2022-09-01').outputs.endpoint.value]"
+            },
+            "accountName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'cosmos-db-account'), '2022-09-01').outputs.name.value]"
+            },
+            "database": {
+              "type": "object",
+              "value": {
+                "name": "[reference(resourceId('Microsoft.Resources/deployments', format('cosmos-db-database-{0}', variables('database').name)), '2022-09-01').outputs.name.value]"
+              }
+            },
+            "containers": {
+              "type": "array",
+              "copy": {
+                "count": "[length(variables('containers'))]",
+                "input": {
+                  "name": "[reference(resourceId('Microsoft.Resources/deployments', format('cosmos-db-container-{0}', variables('containers')[copyIndex()].name)), '2022-09-01').outputs.name.value]"
+                }
+              }
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('environmentName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "security",
+      "resourceGroup": "[parameters('environmentName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "databaseAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.accountName.value]"
+          },
+          "appPrincipalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'identity'), '2022-09-01').outputs.principalId.value]"
+          },
+          "userPrincipalId": "[if(not(empty(parameters('principalId'))), createObject('value', parameters('principalId')), createObject('value', null()))]",
+          "principalType": {
+            "value": "[variables('principalType')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "3316189187164803872"
+            },
+            "description": "Create role assignment and definition resources."
+          },
+          "parameters": {
+            "databaseAccountName": {
+              "type": "string"
+            },
+            "appPrincipalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Id of the service principals to assign database and application roles."
+              }
+            },
+            "userPrincipalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Id of the user principals to assign database and application roles."
+              }
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Principal type used for the role assignment."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "nosql-role-definition",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "targetAccountName": {
+                    "value": "[parameters('databaseAccountName')]"
+                  },
+                  "definitionName": {
+                    "value": "Write to Azure Cosmos DB for NoSQL data plane"
+                  },
+                  "permissionsDataActions": {
+                    "value": [
+                      "Microsoft.DocumentDB/databaseAccounts/readMetadata",
+                      "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*",
+                      "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "8009456667745874997"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL role definition."
+                  },
+                  "parameters": {
+                    "targetAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the target Azure Cosmos DB account."
+                      }
+                    },
+                    "definitionName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the role definiton."
+                      }
+                    },
+                    "permissionsDataActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "An array of data actions that are allowed. Defaults to an empty array."
+                      }
+                    },
+                    "permissionsNonDataActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "An array of data actions that are denied. Defaults to an empty array."
+                      }
+                    }
+                  },
+                  "resources": {
+                    "account": {
+                      "existing": true,
+                      "type": "Microsoft.DocumentDB/databaseAccounts",
+                      "apiVersion": "2023-04-15",
+                      "name": "[parameters('targetAccountName')]"
+                    },
+                    "definition": {
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions",
+                      "apiVersion": "2023-04-15",
+                      "name": "[format('{0}/{1}', parameters('targetAccountName'), guid('nosql-role-definition', resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]",
+                      "properties": {
+                        "assignableScopes": [
+                          "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))]"
+                        ],
+                        "permissions": [
+                          {
+                            "dataActions": "[parameters('permissionsDataActions')]",
+                            "notDataActions": "[parameters('permissionsNonDataActions')]"
+                          }
+                        ],
+                        "roleName": "[parameters('definitionName')]",
+                        "type": "CustomRole"
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('targetAccountName'), guid('nosql-role-definition', resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('appPrincipalId')))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "nosql-role-assignment-app",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "targetAccountName": {
+                    "value": "[parameters('databaseAccountName')]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'nosql-role-definition'), '2022-09-01').outputs.id.value]"
+                  },
+                  "principalId": {
+                    "value": "[parameters('appPrincipalId')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('principalType')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "3416244568319166912"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL role assignment."
+                  },
+                  "parameters": {
+                    "targetAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the target Azure Cosmos DB account."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the role definition to assign to the targeted principal and account."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the principal to assign the role definition for the account."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Principal type used for the role assignment."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+                      "apiVersion": "2023-04-15",
+                      "name": "[format('{0}/{1}', parameters('targetAccountName'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments', parameters('targetAccountName'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'nosql-role-definition')]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('userPrincipalId')))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "nosql-role-assignment-user",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "targetAccountName": {
+                    "value": "[parameters('databaseAccountName')]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'nosql-role-definition'), '2022-09-01').outputs.id.value]"
+                  },
+                  "principalId": {
+                    "value": "[coalesce(parameters('userPrincipalId'), '')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('principalType')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "3416244568319166912"
+                    },
+                    "description": "Create an Azure Cosmos DB for NoSQL role assignment."
+                  },
+                  "parameters": {
+                    "targetAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the target Azure Cosmos DB account."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the role definition to assign to the targeted principal and account."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the principal to assign the role definition for the account."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Principal type used for the role assignment."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+                      "apiVersion": "2023-04-15",
+                      "name": "[format('{0}/{1}', parameters('targetAccountName'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments', parameters('targetAccountName'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('targetAccountName'))))]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'nosql-role-definition')]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('appPrincipalId')))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "openai-role-assignment-read-app",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]"
+                  },
+                  "principalId": {
+                    "value": "[parameters('appPrincipalId')]"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "7409149541772622787"
+                    },
+                    "description": "Creates a role-based access control assignment."
+                  },
+                  "parameters": {
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the role definition to assign to the targeted principal and account."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the principal to assign the role definition for the account."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Type of principal associated with the principal Id."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalType": "[if(not(equals(parameters('principalType'), 'None')), parameters('principalType'), null())]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId')))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('userPrincipalId')))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "openai-role-assignment-read-user",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]"
+                  },
+                  "principalId": {
+                    "value": "[parameters('userPrincipalId')]"
+                  },
+                  "principalType": "[if(not(empty(parameters('principalType'))), createObject('value', parameters('principalType')), createObject('value', 'User'))]"
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.37.4.10188",
+                      "templateHash": "7409149541772622787"
+                    },
+                    "description": "Creates a role-based access control assignment."
+                  },
+                  "parameters": {
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the role definition to assign to the targeted principal and account."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Id of the principal to assign the role definition for the account."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Type of principal associated with the principal Id."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalType": "[if(not(equals(parameters('principalType'), 'None')), parameters('principalType'), null())]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Authorization/roleAssignments', guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId')))]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "roleDefinitions": {
+              "type": "object",
+              "value": {
+                "nosql": "[reference(resourceId('Microsoft.Resources/deployments', 'nosql-role-definition'), '2022-09-01').outputs.id.value]"
+              }
+            },
+            "roleAssignments": {
+              "type": "array",
+              "value": "[union(if(not(empty(parameters('appPrincipalId'))), createArray(reference(resourceId('Microsoft.Resources/deployments', 'nosql-role-assignment-app'), '2022-09-01').outputs.id.value, reference(resourceId('Microsoft.Resources/deployments', 'openai-role-assignment-read-app'), '2022-09-01').outputs.id.value), createArray()), if(not(empty(parameters('userPrincipalId'))), createArray(reference(resourceId('Microsoft.Resources/deployments', 'nosql-role-assignment-user'), '2022-09-01').outputs.id.value, reference(resourceId('Microsoft.Resources/deployments', 'openai-role-assignment-read-user'), '2022-09-01').outputs.id.value), createArray()))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('environmentName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "AZURE_COSMOS_DB_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.endpoint.value]"
+    },
+    "AZURE_COSMOS_DB_DATABASE_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.database.value.name]"
+    },
+    "AZURE_COSMOS_DB_CHAT_CONTAINER_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[0].name]"
+    },
+    "AZURE_COSMOS_DB_CACHE_CONTAINER_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[1].name]"
+    },
+    "AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'database'), '2022-09-01').outputs.containers.value[2].name]"
+    },
+    "AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE_URI": {
+      "type": "string",
+      "value": "[variables('productDataSourceUri')]"
+    },
+    "AZURE_OPENAI_ACCOUNT_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.endpoint.value]"
+    },
+    "AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.deployments.value[0].name]"
+    },
+    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('environmentName')), 'Microsoft.Resources/deployments', 'ai'), '2022-09-01').outputs.deployments.value[1].name]"
+    },
+    "AZURE_OPENAI_MAX_RAG_TOKENS": {
+      "type": "string",
+      "value": "[variables('openAiSettings').maxRagTokens]"
+    },
+    "AZURE_OPENAI_MAX_CONTEXT_TOKENS": {
+      "type": "string",
+      "value": "[variables('openAiSettings').maxContextTokens]"
+    },
+    "AZURE_CHAT_MAX_CONTEXT_WINDOW": {
+      "type": "string",
+      "value": "[variables('chatSettings').maxContextWindow]"
+    },
+    "AZURE_CHAT_CACHE_SIMILARITY_SCORE": {
+      "type": "string",
+      "value": "[variables('chatSettings').cacheSimilarityScore]"
+    },
+    "AZURE_CHAT_PRODUCT_MAX_RESULTS": {
+      "type": "string",
+      "value": "[variables('chatSettings').productMaxResults]"
+    }
+  }
+}
