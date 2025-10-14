@@ -2,6 +2,8 @@
 
 This document describes the unit tests implemented for the cosmos-copilot project.
 
+> **Note**: For a comprehensive guide on testing in GitHub Codespaces, deploying the solution, and running the app, see [TESTING_GUIDE.md](./TESTING_GUIDE.md)
+
 ## Overview
 
 The unit tests are implemented as GitHub Actions workflows that run automatically on:
