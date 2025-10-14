@@ -86,14 +86,15 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Setup Azure CLI
+      id: azure-login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-      if: secrets.AZURE_CREDENTIALS != ''
+      if: ${{ secrets.AZURE_CREDENTIALS != '' }}
       continue-on-error: true
       
     - name: Validate deployment template (if credentials available)
-      if: secrets.AZURE_CREDENTIALS != ''
+      if: steps.azure-login.outcome == 'success'
       run: |
         echo "Running what-if deployment analysis..."
         az deployment sub validate \
@@ -103,7 +104,7 @@ jobs:
       continue-on-error: true
       
     - name: Skip deployment validation (no credentials)
-      if: secrets.AZURE_CREDENTIALS == ''
+      if: steps.azure-login.outcome != 'success'
       run: |
         echo "Azure credentials not configured. Skipping deployment validation."
         echo "To enable deployment validation, add AZURE_CREDENTIALS secret to the repository."
