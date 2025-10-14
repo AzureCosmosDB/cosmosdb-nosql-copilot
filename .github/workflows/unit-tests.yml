@@ -78,19 +78,28 @@ jobs:
         fi
 
   deployment-validation:
-    name: Deployment What-If Analysis
+    name: Deployment What-If Analysis (Optional)
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check for Azure credentials
+      id: check-credentials
+      run: |
+        if [ -n "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+          echo "credentials_available=true" >> $GITHUB_OUTPUT
+        else
+          echo "credentials_available=false" >> $GITHUB_OUTPUT
+        fi
+      
     - name: Setup Azure CLI
       id: azure-login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-      if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+      if: steps.check-credentials.outputs.credentials_available == 'true'
       continue-on-error: true
       
     - name: Validate deployment template (if credentials available)
@@ -104,10 +113,13 @@ jobs:
       continue-on-error: true
       
     - name: Skip deployment validation (no credentials)
-      if: steps.azure-login.outcome != 'success'
+      if: steps.check-credentials.outputs.credentials_available != 'true'
       run: |
-        echo "Azure credentials not configured. Skipping deployment validation."
+        echo "ℹ️  Azure credentials not configured. Skipping deployment validation."
+        echo "This is optional - the workflow will continue successfully."
+        echo ""
         echo "To enable deployment validation, add AZURE_CREDENTIALS secret to the repository."
+        echo "See the PR description for the JSON format required."
 
   code-quality:
     name: Code Quality Checks

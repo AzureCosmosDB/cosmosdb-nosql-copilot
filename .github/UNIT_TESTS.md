@@ -47,21 +47,23 @@ The unit tests are implemented as GitHub Actions workflows that run automaticall
 - Bicep files compile without errors
 - No critical linting violations
 
-### 3. Deployment What-If Analysis (`deployment-validation`)
+### 3. Deployment What-If Analysis (`deployment-validation`) - **OPTIONAL**
 
 **Purpose**: Ensure the solution can be deployed (if Azure credentials are available).
 
 **Steps**:
 - Checkout code
+- Check if Azure credentials are available
 - Login to Azure (if credentials are configured)
 - Run deployment validation using `az deployment sub validate`
 - Perform what-if analysis on the deployment
 
 **Success Criteria**:
-- If credentials are available: deployment template is valid
-- If credentials are not available: skip gracefully with informational message
+- Job always succeeds (never fails the workflow)
+- If credentials are available: deployment template is validated
+- If credentials are not available: skips gracefully with informational message
 
-**Note**: This job is optional and requires the `AZURE_CREDENTIALS` secret to be configured in the repository settings.
+**Note**: This job is **completely optional**. The workflow will succeed whether or not the `AZURE_CREDENTIALS` secret is configured. Add the secret only if you want to enable live deployment validation.
 
 ### 4. Code Quality Checks (`code-quality`)
 
