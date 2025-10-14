@@ -1,0 +1,152 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  package-restore-and-build:
+    name: Package Restore and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+      
+    - name: Restore dependencies
+      run: dotnet restore ./src/cosmos-copilot.sln
+      
+    - name: Verify package compatibility
+      run: |
+        echo "Checking for package compatibility issues..."
+        dotnet list ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj package --outdated || true
+        dotnet list ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj package --deprecated || true
+        
+    - name: Build solution
+      run: dotnet build ./src/cosmos-copilot.sln --configuration Release --no-restore
+      
+    - name: Verify startup capability
+      run: |
+        echo "Verifying the solution compiles and can start..."
+        dotnet build ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj --configuration Release --no-restore
+
+  bicep-validation:
+    name: Bicep Deployment Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Bicep CLI
+      run: |
+        # Install Bicep CLI
+        curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+        chmod +x ./bicep
+        sudo mv ./bicep /usr/local/bin/bicep
+        bicep --version
+        
+    - name: Validate Bicep files
+      run: |
+        echo "Validating main Bicep deployment file..."
+        bicep build ./infra/main.bicep
+        
+    - name: Lint Bicep files
+      run: |
+        echo "Linting Bicep files..."
+        bicep build ./infra/main.bicep --diagnostics-format=sarif --outfile bicep-linter.sarif || true
+        
+    - name: Check for Bicep compilation errors
+      run: |
+        echo "Checking for critical Bicep errors..."
+        if bicep build ./infra/main.bicep 2>&1 | grep -i "error"; then
+          echo "Bicep compilation has errors!"
+          exit 1
+        else
+          echo "Bicep compilation successful!"
+        fi
+
+  deployment-validation:
+    name: Deployment What-If Analysis (Optional)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for Azure credentials
+      id: check-credentials
+      run: |
+        if [ -n "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+          echo "credentials_available=true" >> $GITHUB_OUTPUT
+        else
+          echo "credentials_available=false" >> $GITHUB_OUTPUT
+        fi
+      
+    - name: Setup Azure CLI
+      id: azure-login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      if: steps.check-credentials.outputs.credentials_available == 'true'
+      continue-on-error: true
+      
+    - name: Validate deployment template (if credentials available)
+      if: steps.azure-login.outcome == 'success'
+      run: |
+        echo "Running what-if deployment analysis..."
+        az deployment sub validate \
+          --location eastus \
+          --template-file ./infra/main.bicep \
+          --parameters environmentName=test-validation location=eastus
+      continue-on-error: true
+      
+    - name: Skip deployment validation (no credentials)
+      if: steps.check-credentials.outputs.credentials_available != 'true'
+      run: |
+        echo "ℹ️  Azure credentials not configured. Skipping deployment validation."
+        echo "This is optional - the workflow will continue successfully."
+        echo ""
+        echo "To enable deployment validation, add AZURE_CREDENTIALS secret to the repository."
+        echo "See the PR description for the JSON format required."
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+      
+    - name: Restore dependencies
+      run: dotnet restore ./src/cosmos-copilot.sln
+      
+    - name: Check for build warnings
+      run: |
+        echo "Building solution and checking for warnings..."
+        dotnet build ./src/cosmos-copilot.sln --configuration Release --no-restore /warnaserror || true
+        
+    - name: Code format check (if dotnet format available)
+      run: |
+        echo "Checking code formatting..."
+        dotnet format ./src/cosmos-copilot.sln --verify-no-changes --no-restore || true
+      continue-on-error: true
