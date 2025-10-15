@@ -60,7 +60,7 @@ var openAiSettings = {
   maxContextTokens: '500'
 }
 
-var productDataSourceUri = 'https://cosmosdbcosmicworks.blob.core.windows.net/cosmic-works-vectorized/product-text-3-large-1536-llm-gen-2.json'
+var productDataSourceUri = 'https://raw.githubusercontent.com/AzureCosmosDB/cosmosdb-nosql-copilot/refs/heads/main/data/products-text-3-large-1536.json'
 
 var principalType = 'User'
 
