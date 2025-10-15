@@ -331,12 +331,49 @@ public class SemanticKernelService
             string json = "";
             string jsonFilePath = _productDataSourceURI;
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(jsonFilePath);
-            if(response.IsSuccessStatusCode)
+            
+            try
             {
-                json = await response.Content.ReadAsStringAsync();
+                HttpResponseMessage response = await client.GetAsync(jsonFilePath);
+                if(response.IsSuccessStatusCode)
+                {
+                    json = await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to fetch product data from {jsonFilePath}. Status code: {response.StatusCode}");
+                    return;
+                }
             }
-            List<Product> products = JsonSerializer.Deserialize<List<Product>>(json)!;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching product data from {jsonFilePath}: {ex.Message}");
+                return;
+            }
+
+            // Validate that we have JSON content before attempting to deserialize
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                Console.WriteLine($"Product data source returned empty content from {jsonFilePath}");
+                return;
+            }
+
+            List<Product>? products = null;
+            try
+            {
+                products = JsonSerializer.Deserialize<List<Product>>(json);
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Error deserializing product data: {ex.Message}");
+                return;
+            }
+
+            if (products == null || products.Count == 0)
+            {
+                Console.WriteLine("No products found in the data source");
+                return;
+            }
 
             foreach (var product in products)
             {
