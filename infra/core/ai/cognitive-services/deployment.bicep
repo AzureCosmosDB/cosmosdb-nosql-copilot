@@ -5,8 +5,8 @@ param name string
 @description('Name of the parent Azure Cognitive Services account.')
 param parentAccountName string
 
-@description('Name of the SKU for the deployment. Defaults to "Standard".')
-param skuName string = 'Standard'
+@description('Name of the SKU for the deployment. Defaults to "GlobalStandard".')
+param skuName string = 'GlobalStandard'
 
 @description('Capacity of the SKU for the deployment. Defaults to 100.')
 param skuCapacity int = 100

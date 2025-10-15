@@ -43,7 +43,7 @@ module openAiModelDeployments '../core/ai/cognitive-services/deployment.bicep' =
     params: {
       name: deployment.name
       parentAccountName: openAiAccount.outputs.name
-      skuName: 'Standard'
+      skuName: 'GlobalStandard'
       skuCapacity: deployment.skuCapacity
       modelName: deployment.modelName
       modelVersion: deployment.modelVersion

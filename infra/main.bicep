@@ -22,6 +22,9 @@ param location string
 @description('Id of the principal to assign database and application roles.')
 param principalId string = ''
 
+@description('UPN (User Principal Name) of the owner for resource tagging.')
+param ownerUpn string = ''
+
 // Optional parameters
 param openAiAccountName string = ''
 param cosmosDbAccountName string = ''
@@ -34,10 +37,13 @@ param serviceName string = 'web'
 
 var abbreviations = loadJsonContent('abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
-var tags = {
-  'azd-env-name': environmentName
-  repo: 'https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot'
-}
+var tags = union(
+  {
+    'azd-env-name': environmentName
+    repo: 'https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot'
+  },
+  !empty(ownerUpn) ? { owner: ownerUpn } : {}
+)
 
 var chatSettings = {
   maxContextWindow: '3'
