@@ -14,5 +14,6 @@ module main 'main.bicep' = {
     environmentName: environmentName
     location: location
     principalId: ''
+    ownerUpn: ''
   }
 }

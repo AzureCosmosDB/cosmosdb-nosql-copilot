@@ -405,3 +405,4 @@ serviceDependencies.local.json
 
 # Bicep compiled output
 infra/main.json
+infra/main.test.json
