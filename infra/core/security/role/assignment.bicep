@@ -6,6 +6,14 @@ param roleDefinitionId string
 @description('Id of the principal to assign the role definition for the account.')
 param principalId string
 
+@allowed([
+  'Device'
+  'ForeignGroup'
+  'Group'
+  'ServicePrincipal'
+  'User'
+  'None'
+])
 @description('Type of principal associated with the principal Id.')
 param principalType string
 
