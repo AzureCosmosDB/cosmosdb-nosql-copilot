@@ -399,10 +399,3 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-appsettings.Development.json
-src/cosmos-copilot.WebApp/Properties/ServiceDependencies/local/*
-serviceDependencies.local.json
-
-# Bicep compiled files
-infra/**/*.json
-!infra/**/main.parameters.json

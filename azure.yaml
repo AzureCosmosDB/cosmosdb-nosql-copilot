@@ -5,7 +5,7 @@ metadata:
   template: cosmos-copilot
 services:
   web:
-    project: ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
+    project: ./src
     language: csharp
     host: appservice
 hooks:
@@ -27,19 +27,17 @@ hooks:
             'OpenAi:Endpoint' = $env:AZURE_OPENAI_ACCOUNT_ENDPOINT
             'OpenAi:CompletionDeploymentName' = $env:AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME
             'OpenAi:EmbeddingDeploymentName' = $env:AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME
-            'OpenAi:MaxRagTokens' = $env:AZURE_OPENAI_MAX_RAG_TOKENS
-            'OpenAi:MaxContextTokens' = $env:AZURE_OPENAI_MAX_CONTEXT_TOKENS
             'CosmosDb:Endpoint' = $env:AZURE_COSMOS_DB_ENDPOINT
             'CosmosDb:Database' = $env:AZURE_COSMOS_DB_DATABASE_NAME
             'CosmosDb:ChatContainer' = $env:AZURE_COSMOS_DB_CHAT_CONTAINER_NAME
             'CosmosDb:CacheContainer' = $env:AZURE_COSMOS_DB_CACHE_CONTAINER_NAME
             'CosmosDb:ProductContainer' = $env:AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME
-            'CosmosDb:ProductDataSourceURI' = $env:AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE_URI
-            'Chat:MaxContextWindow' = $env:AZURE_CHAT_MAX_CONTEXT_WINDOW
+            'CosmosDb:ProductDataSourceURI' = $env:AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE
+            'Chat:MaxConversationTokens' = $env:AZURE_CHAT_MAX_CONVERSATION_TOKENS
             'Chat:CacheSimilarityScore' = $env:AZURE_CHAT_CACHE_SIMILARITY_SCORE
             'Chat:ProductMaxResults' = $env:AZURE_CHAT_PRODUCT_MAX_RESULTS
         }
-        $userSecrets | ConvertTo-Json | dotnet user-secrets set --project ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
+        $userSecrets | ConvertTo-Json | dotnet user-secrets set --project ./src/cosmos-copilot.csproj
       shell: pwsh
       continueOnError: false
       interactive: true
@@ -49,19 +47,17 @@ hooks:
             --arg openAiEndpoint $AZURE_OPENAI_ACCOUNT_ENDPOINT \
             --arg openAiCompletionDeploymentName $AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME \
             --arg openAiEmbeddingDeploymentName $AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME \
-            --arg openAiMaxRagTokens $AZURE_OPENAI_MAX_RAG_TOKENS \
-            --arg openAiMaxContextTokens $AZURE_OPENAI_MAX_CONTEXT_TOKENS \
             --arg cosmosDbEndpoint $AZURE_COSMOS_DB_ENDPOINT \
             --arg cosmosDbDatabase $AZURE_COSMOS_DB_DATABASE_NAME \
             --arg cosmosDbChatContainer $AZURE_COSMOS_DB_CHAT_CONTAINER_NAME \
             --arg cosmosDbCacheContainer $AZURE_COSMOS_DB_CACHE_CONTAINER_NAME \
             --arg cosmosDbProductContainer $AZURE_COSMOS_DB_PRODUCT_CONTAINER_NAME \
-            --arg cosmosDbProductDataSourceURI $AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE_URI \
-            --arg chatMaxContextWindow $AZURE_CHAT_MAX_CONTEXT_WINDOW \
-            --arg chatCacheSimilarityScore $AZURE_CHAT_CACHE_SIMILARITY_SCORE \
-            --arg chatProductMaxResults $AZURE_CHAT_PRODUCT_MAX_RESULTS \
-            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"OpenAi:MaxRagTokens":$openAiMaxRagTokens,"OpenAi:MaxContextTokens":$openAiMaxContextTokens,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"CosmosDb:ProductDataSourceURI":$cosmosDbProductDataSourceURI,"Chat:MaxContextWindow":$chatMaxContextWindow,"Chat:CacheSimilarityScore":$chatCacheSimilarityScore,"Chat:ProductMaxResults":$chatProductMaxResults}')
-        echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.WebApp/cosmos-copilot.WebApp.csproj
+            --arg cosmosDbProductDataSourceURI $AZURE_COSMOS_DB_PRODUCT_DATA_SOURCE \
+            --arg maxConversationTokens $AZURE_CHAT_MAX_CONVERSATION_TOKENS \
+            --arg cacheSimilarityScore $AZURE_CHAT_CACHE_SIMILARITY_SCORE \
+            --arg productMaxResults $AZURE_CHAT_PRODUCT_MAX_RESULTS \
+            '{"OpenAi:Endpoint":$openAiEndpoint,"OpenAi:CompletionDeploymentName":$openAiCompletionDeploymentName,"OpenAi:EmbeddingDeploymentName":$openAiEmbeddingDeploymentName,"CosmosDb:Endpoint":$cosmosDbEndpoint,"CosmosDb:Database":$cosmosDbDatabase,"CosmosDb:ChatContainer":$cosmosDbChatContainer,"CosmosDb:CacheContainer":$cosmosDbCacheContainer,"CosmosDb:ProductContainer":$cosmosDbProductContainer,"CosmosDb:ProductDataSource":$cosmosDbProductDataSourceURI,"Chat:MaxConversationTokens":$maxConversationTokens,"Chat:CacheSimilarityScore":$cacheSimilarityScore,"Chat:ProductMaxResults":$productMaxResults}')
+        echo $userSecrets | dotnet user-secrets set --project ./src/cosmos-copilot.csproj
       shell: sh
       continueOnError: false
       interactive: true

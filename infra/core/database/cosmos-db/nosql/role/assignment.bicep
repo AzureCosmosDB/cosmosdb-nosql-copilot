@@ -9,9 +9,6 @@ param roleDefinitionId string
 @description('Id of the principal to assign the role definition for the account.')
 param principalId string
 
-@description('Principal type used for the role assignment.')
-param principalType string
-
 resource account 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: targetAccountName
 }
@@ -23,7 +20,6 @@ resource assignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@20
     principalId: principalId
     roleDefinitionId: roleDefinitionId
     scope: account.id
-    principalType: principalType
   }
 }
 
