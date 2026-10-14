@@ -13,9 +13,6 @@ param disableKeyBasedAuth bool = false
 @description('Enables vector search for this account. Defaults to false.')
 param enableVectorSearch bool = false
 
-@description('Enables NoSQL full text search for this account. Defaults to false.')
-param enableNoSQLFullTextSearch bool = false
-
 module account '../account.bicep' = {
   name: 'cosmos-db-nosql-account'
   params: {
@@ -25,7 +22,6 @@ module account '../account.bicep' = {
     kind: 'GlobalDocumentDB'
     enableServerless: enableServerless
     enableNoSQLVectorSearch: enableVectorSearch
-    enableNoSQLFullTextSearch: enableNoSQLFullTextSearch
     disableKeyBasedAuth: disableKeyBasedAuth
   }
 }
